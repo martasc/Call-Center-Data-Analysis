@@ -9,7 +9,7 @@ Vai originar o ficheiro "clean_data"
 
 ##Terceiro passo: adicionar coluna nrs unicos
 Correr o ficheiro contagem_nrs_unicos.py
-Vai originar ficheiro "added_unique_nrs"
+Vai substituir ficheiro "clean_data"
 
 ##Quarto passo: calcular info kpis -> chamadas devolvidas
 Correr o ficheiro kpi_chamadas_devolvidas.py

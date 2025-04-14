@@ -4,9 +4,6 @@ from datetime import datetime
 from pathlib import Path
 import os
 
-
-
-
 def carregar_dados(caminho_arquivo):
     """Carrega os dados do arquivo CSV"""
     try:
@@ -84,7 +81,7 @@ def main():
 
     # Then reference all files like this:
     input_file = PROJECT_ROOT / 'output' / 'clean_data.csv'
-    output_file = PROJECT_ROOT / 'output' / 'added_unique_nrs.csv'
+    output_file = input_file  
     
     try:
         print("\nIniciando processamento de contagem de números únicos...")
