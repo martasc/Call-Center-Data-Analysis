@@ -3,14 +3,11 @@ Ir a global connect -> menu em cima -> listagem de chamadas e exportar
 Ir aos downloads -> descarregar para o pc
 Mudar o nome do ficheiro para calls e meter na pasta Global Connect
 
-##Segundo passo: limpar dados
-Correr na consola o ficheiro limpeza_dados.py
-Vai originar o ficheiro "clean_data"
+##Segundo passo: limpar dados, gerar tabela limpa e tabela de devoluções
+Correr na consola o ficheiro run_processamento.py
+Vai originar o ficheiro "clean_data" e "chamadas_devolvidas"
+O ficheiro "clean_data" tem uma coluna com a contagem de nrs unicos
 
-##Terceiro passo: adicionar coluna nrs unicos
-Correr o ficheiro contagem_nrs_unicos.py
-Vai substituir ficheiro "clean_data"
-
-##Quarto passo: calcular info kpis -> chamadas devolvidas
+##Terceiro passo: calcular info kpis -> chamadas devolvidas
 Correr o ficheiro kpi_chamadas_devolvidas.py
 Vai originar ficheiro "calls_processed"
