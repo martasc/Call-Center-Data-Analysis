@@ -83,12 +83,39 @@ def processar_dados_chamadas():
 
 
 def plot_graficos(df_clean, df_devolvidas, chamadas_atendidas, chamadas_nao_atendidas):
-    dias_ordem = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
+    # Define day order in ENGLISH (for correct sorting)
+    dias_ordem_english = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
 
-    # Gráfico de Barras
+    # Map English to Portuguese for display
+    english_to_portuguese = {
+        'Monday': 'Segunda',
+        'Tuesday': 'Terça',
+        'Wednesday': 'Quarta',
+        'Thursday': 'Quinta',
+        'Friday': 'Sexta',
+        'Saturday': 'Sábado',
+        'Sunday': 'Domingo'
+    }
+
+    # Convert to categorical (ensures correct order)
+    df_clean['Dia da Semana'] = pd.Categorical(
+        df_clean['Dia da Semana'],
+        categories=dias_ordem_english,
+        ordered=True
+    )
+
+    # Get counts (sorted by English order)
+    vol_por_dia = df_clean['Dia da Semana'].value_counts().sort_index()
+
+    # Plot
     plt.figure(figsize=(10, 6))
-    vol_por_dia = df_clean['Dia da Semana'].value_counts().reindex(dias_ordem)
     sns.barplot(x=vol_por_dia.index, y=vol_por_dia.values, palette="Blues_d")
+    
+    # Replace English labels with Portuguese
+    plt.gca().set_xticklabels(
+        [english_to_portuguese[day.get_text()] for day in plt.gca().get_xticklabels()]
+    )
+    
     plt.title("Volume de Chamadas por Dia da Semana")
     plt.xlabel("Dia")
     plt.ylabel("Chamadas")
@@ -96,26 +123,26 @@ def plot_graficos(df_clean, df_devolvidas, chamadas_atendidas, chamadas_nao_aten
     plt.tight_layout()
     plt.show()
 
-    # Pie Chart
-    """perdidas = len(chamadas_nao_atendidas) - len(df_devolvidas)
-    plt.figure(figsize=(6, 6))
-    labels = ['Atendidas', 'Devolvidas', 'Perdidas']
-    sizes = [len(chamadas_atendidas), len(df_devolvidas), perdidas]
-    colors = ['#4caf50', '#2196f3', '#f44336']
-    plt.pie(sizes, labels=labels, autopct='%1.1f%%', startangle=140, colors=colors)
-    plt.title("Distribuição de Chamadas")
-    plt.axis('equal')
-    plt.show()"""
+    # Heatmap (with Portuguese labels)
+    heatmap_data = df_clean.groupby(['Dia da Semana', 'Hora']).size().unstack().reindex(dias_ordem_english)
 
-    # Heatmap
-    heatmap_data = df_clean.groupby(['Dia da Semana', 'Hora']).size().unstack().reindex(dias_ordem)
     plt.figure(figsize=(12, 6))
-    sns.heatmap(heatmap_data, cmap='YlOrRd', linewidths=0.5, linecolor='gray')
+    ax = sns.heatmap(heatmap_data, cmap='YlOrRd', linewidths=0.5, linecolor='gray')
+
+    # Replace English Y-axis labels with Portuguese
+    ax.set_yticklabels(
+        [english_to_portuguese[day.get_text()] for day in ax.get_yticklabels()],
+        rotation=0
+    )
+
     plt.title("Picos de Chamadas por Hora e Dia da Semana")
     plt.xlabel("Hora do Dia")
     plt.ylabel("Dia da Semana")
     plt.tight_layout()
     plt.show()
+
+    # Remove the duplicate heatmap code at the end of your function
+    # (the second heatmap that was causing the error)
 
 
 def main():
