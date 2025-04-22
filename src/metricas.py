@@ -17,7 +17,7 @@ metricas = [
 fig = plt.figure(figsize=(10, 4), facecolor='#f8f9fa')
 fig.suptitle('Dashboard de Métricas de Chamadas', fontsize=14, y=1.05, color='#333333', fontweight='bold')
 
-# Criar cards quadrados
+# Criar cards
 for i, metrica in enumerate(metricas):
     ax = fig.add_subplot(1, 4, i+1, aspect='equal')
     
@@ -48,6 +48,5 @@ for i, metrica in enumerate(metricas):
 # Ajustar layout
 plt.tight_layout(pad=2.0)
 
-# Salvar e mostrar
 plt.savefig('dashboard_metricas.png', dpi=300, bbox_inches='tight', facecolor=fig.get_facecolor())
 plt.show()

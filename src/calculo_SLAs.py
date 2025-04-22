@@ -7,7 +7,7 @@ def processar_dados_chamadas():
     df_clean = pd.read_csv('../output/clean_data.csv', delimiter=';', quotechar="'")
     df_devolvidas = pd.read_csv('../output/chamadas_devolvidas.csv', delimiter=';', quotechar="'")
     
-    # Tenta carregar chamadas não devolvidas com segurança
+    # Carregar chamadas não devolvidas
     try:
         df_nao_devolvidas = pd.read_csv('../output/chamadas_nao_devolvidas.csv', delimiter=';', quotechar="'")
         nao_devolvidas_existe = not df_nao_devolvidas.empty
@@ -98,7 +98,7 @@ def processar_dados_chamadas():
         "Chamadas atendidas com toque < 60s": total_rapidas,
         "% Chamadas atendidas com toque < 60s": f"{round(perc_rapidas, 2)}%",
 
-        "Chamadas não atendidas - Número de tentativas do nr": media_devolvidas,
+        "Número de tentativas do nrs não atendidos": media_devolvidas,
         "Tempo médio de devolução": tempo_medio_devolucao,
         "Chamadas devolvidas": chamadas_devolvidas,
         "% De Chamadas devolvidas até 3min (por nrs únicos)": f"{round(perc_ate_3min, 2)}%",

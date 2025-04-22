@@ -66,7 +66,6 @@ def clean_data(data_inicio=None, data_fim=None):
     missing_cols = [col for col in required_columns if col not in df.columns]
     if missing_cols:
         raise ValueError(f"❌ Colunas ausentes: {missing_cols}")
-
   
     # Filtro 1: Apenas "chamada voz"
     df = df[df["Serviço"].str.strip().str.lower() == "chamada voz"]
@@ -87,8 +86,7 @@ def clean_data(data_inicio=None, data_fim=None):
     df = df[~df["Origem"].astype(str).str.startswith('4')]
     df = df[~df["Destino Final"].astype(str).str.startswith('4')]
 
-
-    # Garantir que a Data de Início seja do tipo datetime
+    # Garantir que a Data de Início é do tipo datetime
     df["Data de Início"] = pd.to_datetime(df["Data de Início"], errors="coerce")
     
     # Remover linhas com datas inválidas
@@ -109,7 +107,7 @@ def clean_data(data_inicio=None, data_fim=None):
     print("\n🔍 Antes do processamento de duplicatas:")
     print(df[["Data de Início", "Tipo de Encaminhamento", "Causa de Não Atendimento"]].head())
 
-    # Iterar sobre as linhas para verificar duplicatas
+    # Iterar sobre as linhas para verificar duplicadas
     for i in range(1, len(df)):
         current_time = df.iloc[i]["Data de Início"]
         previous_time = df.iloc[i-1]["Data de Início"]
@@ -176,7 +174,6 @@ def clean_data(data_inicio=None, data_fim=None):
     # Reordenar do mais recente para o mais antigo
     df = df.sort_values(by="Data de Início", ascending=False).reset_index(drop=True)
 
-    # Salvar arquivo
     output_dir = "../output"
     os.makedirs(output_dir, exist_ok=True)
     output_file = os.path.join(output_dir, "clean_data.csv")
