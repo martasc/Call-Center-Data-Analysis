@@ -37,10 +37,11 @@ def analisar_devolucoes_e_nao_atendidas(df):
 
     devolucoes = []
     nao_atendidas_nao_devolvidas = []
+    chamadas_atendidas = []
 
     # Dicionário para armazenar tentativas por origem
     historico_origens = {}
-    # Conjunto para marcar origens que receberam devolução
+    # Set para marcar origens que receberam devolução
     origens_com_devolucao = set()
 
     for _, row in df.iterrows():
@@ -79,9 +80,9 @@ def analisar_devolucoes_e_nao_atendidas(df):
                     devolucoes.append(registro)
                     origens_com_devolucao.add(destino)
 
-                # Zerar o histórico após a devolução
+                # Esvaziar o histórico após a devolução
                 historico_origens[destino] = []
-
+    
     # Identificar chamadas não atendidas que nunca foram devolvidas
     for origem, chamadas in historico_origens.items():
         if origem not in origens_com_devolucao:
@@ -122,13 +123,62 @@ def main():
         # Carregar CSV
         df = pd.read_csv('../output/clean_data.csv', delimiter=';', quotechar="'")
         
-        # Rodar análise
+        # Correr análise
         devolucoes, nao_devolvidas = analisar_devolucoes_e_nao_atendidas(df)
+
+
+        ###Aqui -TODO - Coluna estado no clean data
+        # -------------------- ADICIONA COLUNA "Estado" --------------------
+        # Começa com tudo vazio
+        df['Estado'] = ""
+
+        # Normalizar colunas para comparação
+        df['Origem_norm'] = df['Origem'].apply(normalizar_numero)
+        df['Destino_norm'] = df['Destino'].apply(normalizar_numero)
+
+        # Marcar chamadas não atendidas e não devolvidas
+        if not nao_devolvidas.empty:
+            for origem in nao_devolvidas['Origem']:
+                origem_norm = normalizar_numero(origem)
+                cond = (
+                    (df['Origem_norm'] == origem_norm) &
+                    (df['Tipo'].str.contains('não atendida', case=False, na=False)) &
+                    (df['Total Chamadas da Origem'] != 0)
+                )
+                df.loc[cond, 'Estado'] = "Não atendida e não devolvida"
+
+        # Marcar chamadas devolvidas
+        if not devolucoes.empty:
+            for destino in devolucoes['Destino']:
+                destino_norm = normalizar_numero(destino)
+                cond = (
+                    (df['Destino_norm'] == destino_norm) &
+                    (df['Tipo'].str.contains('chamada efetuada', case=False, na=False)) &
+                    (df['Total Chamadas da Origem'] != 0)
+                )
+                df.loc[cond, 'Estado'] = "Não atendida e devolvida"
+
+        # Preencher "Atendida à primeira" onde ainda estiver vazio, mas contagem > 0
+        # df.loc[
+        #     (df['Estado'] == "") & (df['Total Chamadas da Origem'] != 0),
+        #     'Estado'
+        # ] = "Atendida à primeira"
+
+        # Remover colunas auxiliares
+        df.drop(columns=['Origem_norm', 'Destino_norm'], inplace=True)
+
+        df.loc[df['Total Chamadas da Origem'].isna() | (df['Total Chamadas da Origem'] == 0), 'Estado'] = ""
+
+
+       
+        # ------------------------------------------------------------------
+
+
+
+
         
         if not devolucoes.empty or not nao_devolvidas.empty:
-            # Salvar em Excel (múltiplas abas)
             with pd.ExcelWriter('../output/chamadas.xlsx') as writer:
-                # Guardar Todas as chamadas
                 df.to_excel(writer, sheet_name='Todas as Chamadas', index=False)
                 if not devolucoes.empty:
                     print(f"\n📊 Total de devoluções encontradas: {len(devolucoes)}\n")
@@ -140,20 +190,20 @@ def main():
                     print("📋 Exemplos de devoluções:")
                     print(devolucoes[cols].head(10).to_markdown(index=False))
                     devolucoes.to_excel(writer, sheet_name='Chamadas Devolvidas', index=False)
-                    # Salvar também como CSV
+                   
                     devolucoes.to_csv('../output/chamadas_devolvidas.csv', index=False, sep=';')
                 
                 if not nao_devolvidas.empty:
                     print(f"\n📊 Total de chamadas não atendidas não devolvidas: {len(nao_devolvidas)}\n")
-                    cols = [
-                        'Origem', 'Ultima tentativa', 'Primeira tentativa',
-                        'Total Tentativas', 'Status'
-                    ]
-                    print("📋 Exemplos de não devolvidas:")
-                    print(nao_devolvidas[cols].head(10).to_markdown(index=False))
-                    nao_devolvidas.to_excel(writer, sheet_name='Não Atendidas Não Devolvidas', index=False)
-                    # Salvar também como CSV
-                    nao_devolvidas.to_csv('../output/chamadas_nao_devolvidas.csv', index=False, sep=';')
+                cols = [
+                    'Origem', 'Ultima tentativa', 'Primeira tentativa',
+                    'Total Tentativas', 'Status'
+                ]
+                print("📋 Exemplos de não devolvidas:")
+                print(nao_devolvidas[cols].head(10).to_markdown(index=False))
+                nao_devolvidas.to_excel(writer, sheet_name='Não Atendidas Não Devolvidas', index=False)
+               
+                nao_devolvidas.to_csv('../output/chamadas_nao_devolvidas.csv', index=False, sep=';')
             
             print("\n✅ Arquivos gerados:")
             print("- chamadas.xlsx (Excel com múltiplas abas)")

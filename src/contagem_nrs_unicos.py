@@ -19,6 +19,21 @@ def carregar_dados(caminho_arquivo):
     except Exception as e:
         raise ValueError(f"Erro ao carregar arquivo: {str(e)}")
 
+def carregar_dados(caminho_arquivo):
+    """Carrega os dados do arquivo CSV"""
+    try:
+        df = pd.read_csv(caminho_arquivo, delimiter=';')
+        
+        # Verificar colunas obrigatórias
+        colunas_obrigatorias = ['Origem', 'Data de Início', 'Tipo']
+        for col in colunas_obrigatorias:
+            if col not in df.columns:
+                raise ValueError(f"Coluna obrigatória '{col}' não encontrada no arquivo")
+                
+        return df
+    except Exception as e:
+        raise ValueError(f"Erro ao carregar arquivo: {str(e)}")
+
 def processar_dados(df):
     """Processa os dados de chamadas com as novas regras"""
     # Converter datas
@@ -27,34 +42,35 @@ def processar_dados(df):
     # Filtrar apenas linhas com datas válidas
     df = df.dropna(subset=['Data de Início'])
     
-
     # Criar coluna de hora (sem minutos/segundos) para agrupamento
     df['Hora'] = df['Data de Início'].dt.floor('H')
     
     # Ordenar por origem e data
     df = df.sort_values(['Origem', 'Data de Início'])
     
-    # Inicializar coluna de contagem
-    df['Total Chamadas da Origem'] = 0
+    # Inicializar coluna de contagem como string vazia
+    df['Total Chamadas da Origem'] = ''
     
-    # Agrupar por origem e hora
-    grupos = df.groupby(['Origem', 'Hora'])
+    
+
+     # Filtrar APENAS "Chamada recebida" para contagem
+    chamadas = df[df['Tipo'] != 'Chamada efetuada']
+    
+    # Agrupar por Origem + Hora e contar
+    grupos = chamadas.groupby(['Origem', 'Hora'])
+    
     
     for (origem, hora), grupo in grupos:
-        # Filtrar apenas chamadas não atendidas (se necessário)
-        chamadas_validas = grupo[grupo['Tipo'] != "Chamada efetuada"]
+        # Contar TODAS as chamadas do grupo (independente do tipo ou status)
+        total = len(grupo)
         
-
-        if not chamadas_validas.empty:
+        if total >= 1:  # Só mostra contagem se houver mais de 1 chamada
             # Pegar índice da última chamada do grupo
-            ultimo_idx = chamadas_validas.index[-1]
+            ultimo_idx = grupo.index[-1]
             
-            # Contar chamadas (começando em 1)
-            total = len(chamadas_validas)
-            
-            # Atribuir apenas na última chamada
-            df.at[ultimo_idx, 'Total Chamadas da Origem'] = total
-
+            # Atribuir o total apenas na última chamada
+            df.at[ultimo_idx, 'Total Chamadas da Origem'] = str(total)
+    
     # Remover coluna auxiliar de hora
     df = df.drop(columns=['Hora'])
     
@@ -62,6 +78,10 @@ def processar_dados(df):
     df = df.sort_index()
     
     return df
+
+# Exemplo de uso:
+# df = carregar_dados('seu_arquivo.csv')
+# df_processado = processar_dados(df)
 
 def exportar_resultados(df, caminho_saida):
     """Exporta os resultados para um novo arquivo CSV"""

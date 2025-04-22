@@ -1,8 +1,9 @@
 import argparse
 import contagem_nrs_unicos
-import kpi_chamadas_devolvidas
+import chamadas_nao_atendidas
 import limpeza_dados
-import calculo_kpis
+import calculo_SLAs
+import display_SLAs
 from datetime import datetime
 
 def validar_data(data_str):
@@ -20,8 +21,9 @@ def run_all(data_inicio=None, data_fim=None):
     
     limpeza_dados.clean_data(data_inicio=data_inicio, data_fim=data_fim) 
     contagem_nrs_unicos.main()
-    kpi_chamadas_devolvidas.main()  
-    calculo_kpis.main()
+    chamadas_nao_atendidas.main()  
+    calculo_SLAs.processar_dados_chamadas()
+    display_SLAs.main()
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Processar dados de chamadas telefônicas')

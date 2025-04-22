@@ -9,5 +9,5 @@ Vai originar o ficheiro "clean_data" e "chamadas_devolvidas"
 O ficheiro "clean_data" tem uma coluna com a contagem de nrs unicos
 
 ##Terceiro passo: calcular info kpis -> chamadas devolvidas
-Correr o ficheiro kpi_chamadas_devolvidas.py
+Correr o ficheiro chamadas_nao_atendidas.py
 Vai originar ficheiro "calls_processed"
