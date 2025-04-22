@@ -19,21 +19,6 @@ def carregar_dados(caminho_arquivo):
     except Exception as e:
         raise ValueError(f"Erro ao carregar arquivo: {str(e)}")
 
-def carregar_dados(caminho_arquivo):
-    """Carrega os dados do arquivo CSV"""
-    try:
-        df = pd.read_csv(caminho_arquivo, delimiter=';')
-        
-        # Verificar colunas obrigatórias
-        colunas_obrigatorias = ['Origem', 'Data de Início', 'Tipo']
-        for col in colunas_obrigatorias:
-            if col not in df.columns:
-                raise ValueError(f"Coluna obrigatória '{col}' não encontrada no arquivo")
-                
-        return df
-    except Exception as e:
-        raise ValueError(f"Erro ao carregar arquivo: {str(e)}")
-
 def processar_dados(df):
     """Processa os dados de chamadas com as novas regras"""
     # Converter datas
@@ -50,8 +35,6 @@ def processar_dados(df):
     
     # Inicializar coluna de contagem como string vazia
     df['Total Chamadas da Origem'] = ''
-    
-    
 
      # Filtrar APENAS "Chamada recebida" para contagem
     chamadas = df[df['Tipo'] != 'Chamada efetuada']
@@ -79,10 +62,6 @@ def processar_dados(df):
     
     return df
 
-# Exemplo de uso:
-# df = carregar_dados('seu_arquivo.csv')
-# df_processado = processar_dados(df)
-
 def exportar_resultados(df, caminho_saida):
     """Exporta os resultados para um novo arquivo CSV"""
     try:
@@ -95,11 +74,10 @@ def exportar_resultados(df, caminho_saida):
         raise ValueError(f"Erro ao exportar resultados: {str(e)}")
 
 def main():
-    # Configurar caminhos
-    # Get absolute path to project root (src's parent)
+    
     PROJECT_ROOT = Path(__file__).parent.parent
 
-    # Then reference all files like this:
+
     input_file = PROJECT_ROOT / 'output' / 'clean_data.csv'
     output_file = input_file  
     
