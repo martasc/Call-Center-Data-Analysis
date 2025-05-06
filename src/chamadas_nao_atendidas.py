@@ -73,6 +73,7 @@ def analisar_devolucoes_e_nao_atendidas(df):
                         'Ultima tentativa de chamada': ultima_tentativa,
                         'Primeira tentativa de chamada': primeira_tentativa,
                         'Tempo até Devolução (s)': segundos,
+                        'Duração': row['Duração'] if 'Duração' in row else None,
                         'Tempo Formatado': formatar_tempo(segundos),
                         'Total Chamadas da Origem': len(chamadas_anteriores)
                     }

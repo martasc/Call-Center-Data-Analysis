@@ -27,7 +27,7 @@ def clean_data(data_inicio=None, data_fim=None):
     print("🚀 Iniciando limpeza de dados...")
 
     # Caminho do arquivo de entrada
-    arquivo_csv = "../input/calls.csv"
+    arquivo_csv = "../input/abril16-30.csv"
     
     if not Path(arquivo_csv).exists():
         print(f"❌ Arquivo não encontrado: {arquivo_csv}")
@@ -58,7 +58,6 @@ def clean_data(data_inicio=None, data_fim=None):
         data_fim = pd.to_datetime(data_fim)
         df = df[df["Data de Início"] <= data_fim]
 
-    # Resto do seu código original...
     df = df.reset_index(drop=True)
     
     # Verificação de colunas obrigatórias

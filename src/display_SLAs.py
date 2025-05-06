@@ -2,17 +2,33 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from datetime import timedelta
+import logging
+
+# Setup logging
+logging.basicConfig(level=logging.INFO, format='[%(levelname)s] %(message)s')
+
 
 def processar_dados_chamadas():
-    # === Load CSVs ===
+    """
+    Processa dados de chamadas telefônicas a partir de arquivos CSV.
+    Retorna um dicionário com métricas e os DataFrames processados.
+    """
     df_clean = pd.read_csv('../output/clean_data.csv', delimiter=';', quotechar="'")
-    df_devolvidas = pd.read_csv('../output/chamadas_devolvidas.csv', delimiter=';', quotechar="'")
+    
+    # Leitura dos arquivos de chamadas devolvidas e não devolvidas
+    try:
+        df_devolvidas = pd.read_csv('../output/chamadas_devolvidas.csv', delimiter=';', quotechar="'")
+    except FileNotFoundError:
+        logging.warning("Arquivo chamadas_devolvidas.csv não encontrado.")
+        df_devolvidas = pd.DataFrame(columns=['Origem', 'Tempo até Devolução (s)'])
+
     try:
         df_nao_devolvidas = pd.read_csv('../output/chamadas_nao_devolvidas.csv', delimiter=';', quotechar="'")
     except FileNotFoundError:
+        logging.warning("Arquivo chamadas_nao_devolvidas.csv não encontrado.")
         df_nao_devolvidas = pd.DataFrame(columns=['Origem'])
 
-    # === Pre-process ===
+    # Limpeza e transformação dos dados
     df_clean.columns = df_clean.columns.str.strip()
     df_clean['Data de Início'] = pd.to_datetime(df_clean['Data de Início'], errors='coerce')
     df_clean['Data de Fim'] = pd.to_datetime(df_clean['Data de Fim'], errors='coerce')
@@ -20,11 +36,14 @@ def processar_dados_chamadas():
     df_clean['Duração'] = pd.to_timedelta(df_clean['Duração'], errors='coerce')
     df_clean['Dia da Semana'] = df_clean['Data de Início'].dt.day_name()
     df_clean['Hora'] = df_clean['Data de Início'].dt.hour
+    df_clean['Total Chamadas da Origem'] = df_clean.groupby('Origem')['Origem'].transform('count')
 
     chamadas_atendidas = df_clean[df_clean['Tipo'] == 'Chamada recebida']
     chamadas_nao_atendidas = df_clean[df_clean['Tipo'] == 'Chamada Não Atendida']
 
+    # Métricas principais
     total_chamadas = len(df_clean)
+    total_chamadas_nrs_unicos = df_clean['Origem'].nunique()
     total_recebidas = len(chamadas_atendidas) + len(chamadas_nao_atendidas)
     percentagem_atendidas = len(chamadas_atendidas) / total_recebidas * 100 if total_recebidas else 0
     percentagem_nao_atendidas = 100 - percentagem_atendidas
@@ -37,37 +56,45 @@ def processar_dados_chamadas():
     duracao_media = df_clean['Duração'].mean()
     duracao_formatada = str(timedelta(seconds=int(duracao_media.total_seconds()))) if pd.notna(duracao_media) else "N/A"
 
-    tempo_medio_devolucao = None
+    # Tempo médio entre não atendida e devolvida
     try:
-        df_devolvidas['Tempo Formatado (min)'] = df_devolvidas['Tempo Formatado'].str.replace('min', '').astype(float)
-        tempo_medio_devolucao = df_devolvidas['Tempo Formatado (min)'].mean()
+        media_em_segundos = df_devolvidas['Tempo até Devolução (s)'].mean()
+        tempo_medio_devolucao = round(media_em_segundos) if pd.notna(media_em_segundos) else None
+        tempo_formatado = str(timedelta(seconds=tempo_medio_devolucao)) if tempo_medio_devolucao else "N/A"
+        logging.info(f"Tempo médio entre não atendida e devolvida: {tempo_formatado}")
     except Exception as e:
-        print(f"[!] Erro ao calcular tempo médio de devolução: {e}")
+        logging.warning(f"Erro ao calcular tempo médio de devolução: {e}")
+        tempo_formatado = "N/A"
+        tempo_medio_devolucao = None
 
-    # === Chamadas atendidas <60s ===
-    chamadas_recebidas_rapidas = chamadas_atendidas[df_clean['Tempo de Toque'] < pd.Timedelta(seconds=60)]
+    # Chamadas rápidas
+    chamadas_recebidas_rapidas = chamadas_atendidas[chamadas_atendidas['Tempo de Toque'] < pd.Timedelta(seconds=60)]
     total_rapidas = len(chamadas_recebidas_rapidas)
     perc_rapidas = (total_rapidas / len(chamadas_atendidas) * 100) if len(chamadas_atendidas) else 0
 
-    # === % devolvidas até 3min e 15min (por nrs únicos) ===
+    # Devoluções rápidas
     try:
         total_nrs_unicos_devolvidos = df_devolvidas['Origem'].nunique()
-        nrs_ate_3min = df_devolvidas[df_devolvidas['Tempo Formatado (min)'] <= 3]['Origem'].nunique()
-        nrs_ate_15min = df_devolvidas[df_devolvidas['Tempo Formatado (min)'] <= 15]['Origem'].nunique()
+        nrs_ate_3min = df_devolvidas[df_devolvidas['Tempo até Devolução (s)'] <= 180]['Origem'].nunique()
+        nrs_ate_15min = df_devolvidas[df_devolvidas['Tempo até Devolução (s)'] <= 900]['Origem'].nunique()
         perc_ate_3min = (nrs_ate_3min / total_nrs_unicos_devolvidos * 100) if total_nrs_unicos_devolvidos else 0
         perc_ate_15min = (nrs_ate_15min / total_nrs_unicos_devolvidos * 100) if total_nrs_unicos_devolvidos else 0
     except:
         perc_ate_3min = perc_ate_15min = 0
 
-    resultados = {
+    media_chamadas_por_origem = df_clean['Total Chamadas da Origem'].mean()
+
+    # Dicionário de retorno
+    return {
         "Total de chamadas": total_chamadas,
+        "Total de nrs únicos": total_chamadas_nrs_unicos,
+        "Total de chamadas atendidas": total_recebidas,
         "Chamadas atendidas": len(chamadas_atendidas),
         "Chamadas não atendidas": len(chamadas_nao_atendidas),
         "% atendidas": round(percentagem_atendidas, 2),
         "% não atendidas": round(percentagem_nao_atendidas, 2),
         "Chamadas devolvidas": chamadas_devolvidas,
-        "% devolvidas sobre chamadas não atendidas (nrs únicos)": round((chamadas_devolvidas / df_nao_devolvidas['Origem'].nunique() * 100), 2) if not df_nao_devolvidas.empty else 0,
-        "Tempo médio entre não atendida e devolvida (min)": round(tempo_medio_devolucao, 2) if tempo_medio_devolucao else "N/A",
+        "% devolvidas sobre chamadas não atendidas (nrs únicos)": round((chamadas_devolvidas / chamadas_nao_devolvidas_unicas * 100), 2) if chamadas_nao_devolvidas_unicas else 0,
         "Chamadas não atendidas e não devolvidas": chamadas_nao_devolvidas,
         "Tempo médio de espera (s)": round(tempo_medio_espera.total_seconds(), 2) if pd.notna(tempo_medio_espera) else "N/A",
         "Duração média da chamada": duracao_formatada,
@@ -75,87 +102,72 @@ def processar_dados_chamadas():
         "% Chamadas atendidas com toque < 60s": round(perc_rapidas, 2),
         "% Devolvidas até 3min": round(perc_ate_3min, 2),
         "% Devolvidas até 15min": round(perc_ate_15min, 2),
+        "📊 Média de chamadas por número único": round(media_chamadas_por_origem, 2),
         "df_clean": df_clean,
         "df_devolvidas": df_devolvidas
     }
 
-    return resultados
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
 
+def plot_graficos(df_clean):
+    """
+    Gera gráficos de média de chamadas únicas por dia da semana (proporcional ao total de chamadas).
+    """
+    # Renomear se necessário
+    if 'Data de Início' in df_clean.columns:
+        df_clean = df_clean.rename(columns={"Data de Início": "Data"})
 
-def plot_graficos(df_clean, df_devolvidas, chamadas_atendidas, chamadas_nao_atendidas):
-    # Define day order in ENGLISH (for correct sorting)
+    # Converter data e extrair hora e dia da semana
+    df_clean['Data'] = pd.to_datetime(df_clean['Data'])
+    df_clean['Hora'] = df_clean['Data'].dt.hour
+    df_clean['Dia da Semana'] = df_clean['Data'].dt.day_name()
+
+    # Filtrar chamadas que NÃO são "Chamada efetuada"
+    df_filtrado = df_clean[df_clean['Tipo'] != 'Chamada efetuada'].copy()
+
+    # Dicionário e ordem para tradução dos dias
     dias_ordem_english = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday']
-
-    # Map English to Portuguese for display
     english_to_portuguese = {
-        'Monday': 'Segunda',
-        'Tuesday': 'Terça',
-        'Wednesday': 'Quarta',
-        'Thursday': 'Quinta',
-        'Friday': 'Sexta',
-        'Saturday': 'Sábado',
-        'Sunday': 'Domingo'
+        'Monday': 'Segunda', 'Tuesday': 'Terça', 'Wednesday': 'Quarta',
+        'Thursday': 'Quinta', 'Friday': 'Sexta', 'Saturday': 'Sábado', 'Sunday': 'Domingo'
     }
 
-    # Convert to categorical (ensures correct order)
-    df_clean['Dia da Semana'] = pd.Categorical(
-        df_clean['Dia da Semana'],
-        categories=dias_ordem_english,
-        ordered=True
-    )
+    # Garantir a ordem correta
+    df_filtrado['Dia da Semana'] = pd.Categorical(df_filtrado['Dia da Semana'],
+                                                  categories=dias_ordem_english,
+                                                  ordered=True)
 
-    # Get counts (sorted by English order)
-    vol_por_dia = df_clean['Dia da Semana'].value_counts().sort_index()
+    # Total de chamadas após o filtro
+    total_chamadas = len(df_filtrado)
 
-    # Plot
+    # Agrupar por dia da semana e contar chamadas
+    chamadas_por_dia = df_filtrado.groupby('Dia da Semana')['Tipo'].count()
+    medias = chamadas_por_dia / total_chamadas
+
+    # Gráfico de barras
     plt.figure(figsize=(10, 6))
-    sns.barplot(x=vol_por_dia.index, y=vol_por_dia.values, palette="Blues_d")
-    
-    # Replace English labels with Portuguese
-    plt.gca().set_xticklabels(
-        [english_to_portuguese[day.get_text()] for day in plt.gca().get_xticklabels()]
+    sns.barplot(
+        x=[english_to_portuguese[dia] for dia in dias_ordem_english],
+        y=[medias.get(dia, 0) for dia in dias_ordem_english],
+        palette='Blues_d'
     )
-    
-    plt.title("Volume de Chamadas por Dia da Semana")
-    plt.xlabel("Dia")
-    plt.ylabel("Chamadas")
-    plt.xticks(rotation=45)
+    plt.title('Média proporcional de chamadas por Dia da Semana')
+    plt.xlabel('Dia da Semana')
+    plt.ylabel('Proporção de Chamadas')
+    plt.ylim(0, 1)
     plt.tight_layout()
     plt.show()
 
-    # Heatmap (with Portuguese labels)
-    heatmap_data = df_clean.groupby(['Dia da Semana', 'Hora']).size().unstack().reindex(dias_ordem_english)
 
-    plt.figure(figsize=(12, 6))
-    ax = sns.heatmap(heatmap_data, cmap='YlOrRd', linewidths=0.5, linecolor='gray')
 
-    # Replace English Y-axis labels with Portuguese
-    ax.set_yticklabels(
-        [english_to_portuguese[day.get_text()] for day in ax.get_yticklabels()],
-        rotation=0
-    )
 
-    plt.title("Picos de Chamadas por Hora e Dia da Semana")
-    plt.xlabel("Hora do Dia")
-    plt.ylabel("Dia da Semana")
-    plt.tight_layout()
-    plt.show()
-
-    # Remove the duplicate heatmap code at the end of your function
-    # (the second heatmap that was causing the error)
 
 
 def main():
     resultados = processar_dados_chamadas()
-    print("\n📋 MÉTRICAS GERAIS:")
-    for chave, valor in resultados.items():
-        if not isinstance(valor, pd.DataFrame):
-            print(f"{chave}: {valor}")
-
-    # Plotar gráficos
-    plot_graficos(resultados['df_clean'], resultados['df_devolvidas'],
-                  resultados['df_clean'][resultados['df_clean']['Tipo'] == 'Chamada recebida'],
-                  resultados['df_clean'][resultados['df_clean']['Tipo'] == 'Chamada Não Atendida'])
+    plot_graficos(resultados['df_clean'])
 
 
 if __name__ == "__main__":
