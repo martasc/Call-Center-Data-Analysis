@@ -3,16 +3,18 @@ from datetime import datetime
 import re
 
 def formatar_tempo(segundos):
-    """Formata o tempo de forma inteligente: 2s, 10s, 1min, 6h, 24h"""
+    """Formata o tempo de forma inteligente: 2s, 10s, 1min, 6h30min"""
     if segundos is None:
         return None
     if segundos < 60:
         return f"{int(segundos)}s"
     elif segundos < 3600:
-        return f"{int(segundos//60)}min"
+        return f"{int(segundos // 60)}min"
     else:
-        horas = segundos / 3600
-        return f"{horas:.1f}h"
+        horas = int(segundos // 3600)
+        minutos = int((segundos % 3600) // 60)
+        return f"{horas}h{minutos:02d}min"
+
 
 def parse_date(date_str):
     """Parse dates in multiple formats"""
