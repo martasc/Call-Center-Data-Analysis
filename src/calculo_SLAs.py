@@ -72,9 +72,30 @@ def processar_dados_chamadas():
     nrs_unicos = df_clean['Total Chamadas da Origem'].count() if 'Total Chamadas da Origem' in df_clean.columns else 0
     percentagem_atendidas = len(chamadas_atendidas) / total_chamadas_recebidas * 100 if total_chamadas_recebidas else 0
 
+    #Para Chamadas atendidas
     chamadas_recebidas_rapidas = chamadas_atendidas[chamadas_atendidas['Tempo de Toque'] <= pd.Timedelta(seconds=60)]
     total_rapidas = len(chamadas_recebidas_rapidas)
     perc_rapidas = total_rapidas / len(chamadas_atendidas) * 100 if len(chamadas_atendidas) else 0
+
+    #Para Chamadas Totais
+    chamadas_atendidas = chamadas_atendidas[chamadas_atendidas['Tempo de Toque'] <= pd.Timedelta(seconds=60)]
+    num_atendidas_rapidas = len(chamadas_atendidas)
+    chamadas_nao_atendidas = chamadas_nao_atendidas[chamadas_nao_atendidas['Tempo de Toque'] <= pd.Timedelta(seconds=60)]
+    chamadas_combinadas = pd.concat([chamadas_atendidas, chamadas_nao_atendidas], ignore_index=True)
+
+    total_recebidas = len(chamadas_combinadas)  
+
+    nao_atendidas_toque_curto = chamadas_nao_atendidas[chamadas_nao_atendidas['Tempo de Toque'] <= pd.Timedelta(seconds=60)]
+    num_nao_atendidas_toque_curto = len(nao_atendidas_toque_curto)
+
+    # 5. Calcula o denominador ajustado
+    denominador = total_recebidas - num_nao_atendidas_toque_curto
+
+    total_rapidas = len(chamadas_combinadas)
+    #perc_rapidas = total_rapidas / len(chamadas_atendidas) * 100 if len(chamadas_atendidas) else 0
+    
+    perc_rapidas = (num_atendidas_rapidas / denominador * 100) if denominador else 0
+
 
     primeira_tentativa = len(df_clean[(df_clean.get('Total Chamadas da Origem', 0) == 1) & (df_clean['Tipo'] == 'Chamada recebida')]) if 'Total Chamadas da Origem' in df_clean.columns else 0
 
@@ -124,15 +145,16 @@ def processar_dados_chamadas():
 
 
 
-    tempo_medio_espera = df_clean['Tempo de Toque'].mean()
+    tempo_medio_espera = chamadas_atendidas['Tempo de Toque'].mean()
     tempo_medio_espera_s = round(tempo_medio_espera.total_seconds(), 2) if pd.notna(tempo_medio_espera) else 0
 
     duracao_media_atendidas = chamadas_atendidas['Duração'].mean()
     duracao_formatada = str(timedelta(seconds=int(duracao_media_atendidas.total_seconds()))) if pd.notna(duracao_media_atendidas) else "N/A"
 
-    # Chamadas devolvidas - corrigido
+    # Chamadas devolvidas 
     #chamadas_devolvidas = df_devolvidas['Destino'] if 'Origem' in df_devolvidas.columns else 0
     chamadas_devolvidas = len(df_devolvidas) if not df_devolvidas.empty else 0
+    #TODO:Filtrar - remover chamadas feedback 
 
     if chamadas_devolvidas > 0 and 'Duração' in df_devolvidas.columns:
         df_devolvidas['Duração'] = pd.to_timedelta(df_devolvidas['Duração'], errors='coerce')
@@ -160,7 +182,9 @@ def processar_dados_chamadas():
     chamadas_nao_devolvidas = len(df_nao_devolvidas) if nao_devolvidas_existe else 0
     chamadas_nao_devolvidas_unicas = df_nao_devolvidas['Origem'].nunique() if nao_devolvidas_existe and 'Origem' in df_nao_devolvidas.columns else 0
 
-    percentagem_nao_atendidas = 100 - percentagem_atendidas
+    percentagem_atendidas = len(chamadas_atendidas) / total_chamadas_recebidas * 100 if total_chamadas_recebidas else 0
+
+    percentagem_nao_atendidas = len(chamadas_nao_atendidas) / total_chamadas_recebidas * 100 if total_chamadas_recebidas else 0
     if 'Origem' in chamadas_nao_atendidas.columns and chamadas_nao_atendidas['Origem'].nunique() > 0:
         percentagem_devolvidas_sobre_nao_atendidas = 100 * total_nrs_unicos_devolvidos / chamadas_nao_atendidas['Origem'].nunique()
     else:
@@ -175,7 +199,7 @@ def processar_dados_chamadas():
     print("------------------")
     print(f"Total Chamadas Atendidas: {len(chamadas_atendidas)}")
     print(f"% Chamadas Atendidas: {round(percentagem_atendidas, 2)}%")
-    print(f"Chamadas com tempo de espera <= 60s: {total_rapidas}")
+    print(f"Chamadas com tempo de espera <= 60s: {num_atendidas_rapidas}")
     print(f"% Chamadas com tempo de espera <= 60s: {round(perc_rapidas, 2)}%")
     print(f"Chamadas atendidas à primeira tentativa: {primeira_tentativa}")
     print(f"Número médio de tentativas (atendidas): {round(media_tentativas_atendidas, 1) if media_tentativas_atendidas is not None else 'N/A'}")
@@ -186,7 +210,7 @@ def processar_dados_chamadas():
     print("------------------")
     print(f"Total de Chamadas não atendida: {len(chamadas_nao_atendidas)}")
     print(f"% não atendidas: {round(percentagem_nao_atendidas, 2)}%\n")
-    print(f"Número médio de tentativas (geral): {round(media_tentativas_nao_atendidas, 1) if media_tentativas_nao_atendidas is not None else 'N/A'}\n")
+    print(f"Número médio de tentativas (não atendidas): {round(media_tentativas_nao_atendidas, 1) if media_tentativas_nao_atendidas is not None else 'N/A'}\n")
 
 
     print("Chamadas Devolvidas")
