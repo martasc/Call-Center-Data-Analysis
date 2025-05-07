@@ -1,6 +1,19 @@
 import pandas as pd
 import os
 from pathlib import Path
+import os
+import glob
+
+def remove_output_files():
+    output_folder = "../output"
+    files = glob.glob(os.path.join(output_folder, "*"))
+
+    for f in files:
+        try:
+            os.remove(f)
+        except IsADirectoryError:
+            import shutil
+            shutil.rmtree(f)
 
 def formatar_numero(numero):
     if pd.isna(numero):
@@ -25,6 +38,8 @@ def formatar_numero(numero):
 
 def clean_data(data_inicio=None, data_fim=None):
     print("🚀 Iniciando limpeza de dados...")
+
+    remove_output_files()
 
     # Caminho do arquivo de entrada
     arquivo_csv = "../input/abril16-30.csv"
