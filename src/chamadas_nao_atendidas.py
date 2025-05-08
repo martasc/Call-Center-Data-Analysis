@@ -39,74 +39,95 @@ def analisar_devolucoes_e_nao_atendidas(df):
 
     devolucoes = []
     nao_atendidas_nao_devolvidas = []
-    chamadas_atendidas = []
 
-    # Dicionário para armazenar tentativas por origem
+    # Dicionário para armazenar todas as chamadas por origem
     historico_origens = {}
-    # Set para marcar origens que receberam devolução
-    origens_com_devolucao = set()
+    # Dicionário para armazenar a última chamada não atendida por origem
+    ultimas_nao_atendidas = {}
+    # Set para armazenar origens que já tiveram sua devolução contabilizada
+    devolucoes_contabilizadas = set()
 
     for _, row in df.iterrows():
-        tipo = row['Tipo']
+        tipo = row['Tipo'].lower()
         data = row['Data de Início']
         origem = str(row['Origem']).strip()
         destino = str(row['Destino']).strip()
+        duracao = row.get('Duração', None)
 
-        # Se for uma tentativa (não "Chamada efetuada")
-        if tipo != 'Chamada efetuada':
-            if origem not in historico_origens:
-                historico_origens[origem] = []
-            historico_origens[origem].append((data, tipo))
+        # Registrar todas as chamadas no histórico
+        if origem not in historico_origens:
+            historico_origens[origem] = []
+        historico_origens[origem].append((data, tipo, duracao))
 
-        # Se for uma devolução (chamada efetuada para alguém que nos ligou antes)
-        else:
-            if destino in historico_origens and historico_origens[destino]:
-                chamadas_anteriores = [d for d, t in historico_origens[destino] if d < data]
+        # Se for uma chamada não atendida, atualizar o registro
+        if 'não atendida' in tipo:
+            ultimas_nao_atendidas[origem] = data
+            # Resetar o status de devolução contabilizada para esta origem
+            if origem in devolucoes_contabilizadas:
+                devolucoes_contabilizadas.remove(origem)
+        # Se for uma chamada recebida, remover da lista de pendentes (se existir)
+        elif 'recebida' in tipo and origem in ultimas_nao_atendidas:
+            del ultimas_nao_atendidas[origem]
+            if origem in devolucoes_contabilizadas:
+                devolucoes_contabilizadas.remove(origem)
 
-                if chamadas_anteriores:
-                    ultima_tentativa = max([d for d, t in historico_origens[destino] if d < data])
-                    primeira_tentativa = min([d for d, t in historico_origens[destino] if d < data])
-                    segundos = (data - ultima_tentativa).total_seconds()
+        # Se for uma chamada efetuada (potencial devolução)
+        elif tipo == 'chamada efetuada':
+            # Verificar se é uma devolução para uma origem com chamada não atendida pendente
+            if destino in ultimas_nao_atendidas and destino not in devolucoes_contabilizadas:
+                ultima_na = ultimas_nao_atendidas[destino]
+                
+                # Garantir que a devolução é posterior à última chamada não atendida
+                if data > ultima_na:
+                    # Verificar se não houve chamada recebida entre a não atendida e a devolução
+                    houve_chamada_recebida = any(
+                        'recebida' in t and ultima_na < d < data 
+                        for d, t, _ in historico_origens[destino]
+                    )
+                    
+                    if not houve_chamada_recebida:
+                        # Calcular tempo desde a última chamada não atendida
+                        segundos = (data - ultima_na).total_seconds()
+                        
+                        # Contar quantas chamadas não atendidas essa origem fez antes da devolução
+                        total_nao_atendidas = len([d for d, t, _ in historico_origens[destino] 
+                                                  if 'não atendida' in t and d <= ultima_na])
+                        
+                        # Registrar a devolução
+                        registro = {
+                            'Origem': destino,
+                            'Destino': origem,
+                            'Data Devolução': data,
+                            'Ultima tentativa de chamada': ultima_na,
+                            'Primeira tentativa de chamada': min([d for d, t, _ in historico_origens[destino] 
+                                                                 if 'não atendida' in t]),
+                            'Tempo até Devolução (s)': segundos,
+                            'Duração': duracao,
+                            'Tempo Formatado': formatar_tempo(segundos),
+                            'Total Chamadas da Origem': total_nao_atendidas,
+                            'Status': 'Devolução atendida' if duracao and pd.notna(duracao) else 'Devolução não atendida'
+                        }
+                        devolucoes.append(registro)
+                        
+                        # Marcar que já contabilizamos uma devolução para esta origem
+                        devolucoes_contabilizadas.add(destino)
 
-                    registro = {
-                        'Origem': row['Origem'],
-                        'Destino': row['Destino'],
-                        'Data Devolução': data,
-                        'Ultima tentativa de chamada': ultima_tentativa,
-                        'Primeira tentativa de chamada': primeira_tentativa,
-                        'Tempo até Devolução (s)': segundos,
-                        'Duração': row['Duração'] if 'Duração' in row else None,
-                        'Tempo Formatado': formatar_tempo(segundos),
-                        'Total Chamadas da Origem': len(chamadas_anteriores)
-                    }
-
-                    devolucoes.append(registro)
-                    origens_com_devolucao.add(destino)
-
-                # Esvaziar o histórico após a devolução
-                historico_origens[destino] = []
-    
     # Identificar chamadas não atendidas que nunca foram devolvidas
     for origem, chamadas in historico_origens.items():
-        if origem not in origens_com_devolucao:
-            # Verificar se houve alguma chamada atendida para esta origem
-            chamadas_atendidas = [t for d, t in chamadas if 'não atendida' not in t.lower()]
-            
-            # Só considerar como não devolvida se NÃO houve nenhuma chamada atendida
-            if not chamadas_atendidas:
-                # Filtrar apenas chamadas não atendidas
-                nao_atendidas = [d for d, t in chamadas if 'não atendida' in t.lower()]
+        # Verificar se é uma origem que teve chamadas não atendidas
+        if origem in ultimas_nao_atendidas:
+            # Verificar se não teve devolução contabilizada
+            if origem not in devolucoes_contabilizadas:
+                # Verificar se houve alguma chamada atendida
+                teve_chamada_atendida = any('não atendida' not in t and 'recebida' not in t for _, t, _ in chamadas)
                 
-                if nao_atendidas:
-                    ultima_data = max(nao_atendidas)
-                    primeira_data = min(nao_atendidas)
-                    total_chamadas = len(nao_atendidas)
-                    
+                if not teve_chamada_atendida:
+                    nao_atendidas = [d for d, t, _ in chamadas if 'não atendida' in t]
                     registro = {
                         'Origem': origem,
-                        'Ultima tentativa': ultima_data,
-                        'Primeira tentativa': primeira_data,
-                        'Total Tentativas': total_chamadas,
+                        'Ultima tentativa': max(nao_atendidas),
+                        'Primeira tentativa': min(nao_atendidas),
+                        'Total Tentativas': len(nao_atendidas),
                         'Status': 'Não atendida e não devolvida'
                     }
                     nao_atendidas_nao_devolvidas.append(registro)
