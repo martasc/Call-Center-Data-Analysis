@@ -84,7 +84,7 @@ def processar_dados_chamadas():
 
     media_chamadas_por_origem = df_clean['Total Chamadas da Origem'].mean()
 
-    # Dicionário de retorno
+    # Dicionário do return
     return {
         "Total de chamadas": total_chamadas,
         "Total de nrs únicos": total_chamadas_nrs_unicos,
@@ -107,9 +107,6 @@ def processar_dados_chamadas():
         "df_devolvidas": df_devolvidas
     }
 
-import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
 
 def plot_graficos(df_clean):
     """
@@ -159,10 +156,6 @@ def plot_graficos(df_clean):
     plt.ylim(0, 1)
     plt.tight_layout()
     plt.show()
-
-
-
-
 
 
 def main():

@@ -41,14 +41,14 @@ def clean_data(data_inicio=None, data_fim=None):
 
     remove_output_files()
 
-    # Caminho do arquivo de entrada
+    # Caminho do ficheiro input
     arquivo_csv = "../input/maio01_13.csv"
     
     if not Path(arquivo_csv).exists():
         print(f"❌ Arquivo não encontrado: {arquivo_csv}")
         return
 
-    # Leitura do CSV
+    # Leitura do CSV input
     try:
         df = pd.read_csv(arquivo_csv, delimiter=";", skiprows=2)
         print(f"📥 CSV carregado com {len(df)} linhas.")
@@ -56,7 +56,7 @@ def clean_data(data_inicio=None, data_fim=None):
         print(f"❌ Erro ao ler o CSV: {e}")
         return
 
-    # Converter a coluna de data para datetime ANTES de filtrar
+    # Converter a coluna de data para datetime antes de filtrar
     df["Data de Início"] = pd.to_datetime(df["Data de Início"], errors="coerce")
     
     # Remover linhas com datas inválidas
@@ -121,10 +121,6 @@ def clean_data(data_inicio=None, data_fim=None):
     to_remove_indices = []
     duplicate_pairs_found = 0
 
-    # DEBUG: Mostrar primeiras linhas antes do processamento
-    print("\n🔍 Antes do processamento de duplicatas:")
-    print(df[["Data de Início", "Tipo de Encaminhamento", "Causa de Não Atendimento"]].head())
-
     # Iterar sobre as linhas para verificar duplicadas
     for i in range(1, len(df)):
         current_time = df.iloc[i]["Data de Início"]
@@ -157,7 +153,6 @@ def clean_data(data_inicio=None, data_fim=None):
                     df.at[df.index[i-1], "Causa de Não Atendimento"] = causa
                     to_remove_indices.append(df.index[i])
 
-            
 
     # Exibir o número total de pares encontrados
     # Remover as linhas "Chamada Não Atendida"
