@@ -42,7 +42,7 @@ def clean_data(data_inicio=None, data_fim=None):
     remove_output_files()
 
     # Caminho do arquivo de entrada
-    arquivo_csv = "../input/abril16-30.csv"
+    arquivo_csv = "../input/maio01_13.csv"
     
     if not Path(arquivo_csv).exists():
         print(f"❌ Arquivo não encontrado: {arquivo_csv}")
@@ -99,6 +99,10 @@ def clean_data(data_inicio=None, data_fim=None):
     # Remover linhas com '400', '401', ou '4' em "Origem" ou "Destino Final"
     df = df[~df["Origem"].astype(str).str.startswith('4')]
     df = df[~df["Destino Final"].astype(str).str.startswith('4')]
+
+    # Remover linhas das chamadas Teste 
+    df = df[~df["Origem"].astype(str).str.startswith("35193599")]
+    df = df[~df["Origem"].astype(str).str.startswith("35191244")]
 
     # Garantir que a Data de Início é do tipo datetime
     df["Data de Início"] = pd.to_datetime(df["Data de Início"], errors="coerce")
