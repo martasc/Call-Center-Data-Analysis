@@ -65,7 +65,7 @@ def processar_dados(df):
 def exportar_resultados(df, caminho_saida):
     """Exporta os resultados para um novo arquivo CSV"""
     try:
-        # Garantir que o diretório de saída existe
+        # Garantir que a pasta de output existe
         os.makedirs(os.path.dirname(caminho_saida), exist_ok=True)
         
         df.to_csv(caminho_saida, index=False, sep=';', encoding='utf-8-sig')
