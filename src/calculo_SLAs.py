@@ -167,7 +167,7 @@ def processar_dados_chamadas():
         print("Duração média das chamadas (devolvidas): N/A")
 
     tempo_medio_devolucao = df_devolvidas['Tempo até Devolução (s)'].mean() if 'Tempo até Devolução (s)' in df_devolvidas.columns else None
-    tempo_medio_formatado = formatar_tempo(tempo_medio_devolucao) if tempo_medio_devolucao is not None else None
+    tempo_medio_formatado = formatar_tempo(tempo_medio_devolucao) if pd.notna(tempo_medio_devolucao) else None
 
     if 'Tempo até Devolução (s)' in df_devolvidas.columns:
         df_devolvidas['Tempo Formatado (min)'] = df_devolvidas['Tempo até Devolução (s)'] / 60
