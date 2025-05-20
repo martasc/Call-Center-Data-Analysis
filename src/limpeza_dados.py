@@ -21,7 +21,7 @@ def formatar_numero(numero):
 
     numero = str(numero).strip().replace(" ", "").replace("+", "").replace("*", "").replace("'", "").replace('"', '')
 
-    # Adiciona +351 se for número nacional com 9 dígitos
+    # Adicionar +351 se for número nacional com 9 dígitos
     if numero.startswith("9") and len(numero) == 9:
         return f"+351{numero}"
 
@@ -42,7 +42,7 @@ def clean_data(data_inicio=None, data_fim=None):
     remove_output_files()
 
     # Caminho do ficheiro input
-    arquivo_csv = "../input/maio01_13.csv"
+    arquivo_csv = "../input/chamadas.csv"
     
     if not Path(arquivo_csv).exists():
         print(f"❌ Arquivo não encontrado: {arquivo_csv}")
@@ -92,9 +92,17 @@ def clean_data(data_inicio=None, data_fim=None):
 
     print(f"🧹 Após filtro 'Tipo de Encaminhamento' vazio: {len(df)} linhas")
 
-    # Limpeza das colunas "Origem" e "Destino Final"
-    df["Origem"] = df["Origem"].str.strip().str.replace(r"[^0-9]", "", regex=True)
-    df["Destino Final"] = df["Destino Final"].str.strip().str.replace(r"[^0-9]", "", regex=True)
+   # Primeiro: limpar 'Origem' e 'Destino Final'
+    df["Origem"] = df["Origem"].astype(str).str.strip().str.replace(r"[^0-9]", "", regex=True)
+    df["Destino Final"] = df["Destino Final"].astype(str).str.strip().str.replace(r"[^0-9]", "", regex=True)
+
+    print(df["Destino Final"].head(10))
+
+    # Depois: aplicar o filtro com os valores limpos
+    destinos_desejados = ["962878547", "962878568"]
+    df = df[df["Destino Final"].isin(destinos_desejados)]
+    print(f"📌 Após filtro por 'Destino Final' desejado: {len(df)} linhas")
+
 
     # Remover linhas com '400', '401', ou '4' em "Origem" ou "Destino Final"
     df = df[~df["Origem"].astype(str).str.startswith('4')]
