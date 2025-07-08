@@ -1,19 +1,14 @@
 import argparse
-import chamadas_nao_atendidas
 import setup_environment
-import limpeza_dados
-import calculo_SLAs
-import display_SLAs
 import metricas
 from datetime import datetime
 
 def run_all():
-    print(f"\n🔎 Inicio da execução:")
+    print(f"\033[1;34m\nInicio da execução do script:\033[0m")
+
     setup_environment.setup_cleaning_environment()
     metricas.analisar_chamadas()
- 
-    
-    #Chamadar scripts todos
+
 
 if __name__ == "__main__":
     run_all()

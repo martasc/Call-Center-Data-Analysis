@@ -5,252 +5,213 @@ import shutil
 from pathlib import Path
 import pandas as pd
 
-DADOS_COMPLETOS = "../input/junho.csv"
-OUTPUT_FOLDER = "../output"
-OUTPUT_FILE = os.path.join(OUTPUT_FOLDER, "clean_data.csv")
+INPUT_FILE = "../input/junho.csv"
+OUTPUT_DIR = "../output"
+CLEAN_OUTPUT_FILE = os.path.join(OUTPUT_DIR, "todas.csv") #efetuadas(total - dev ou feedback) + "recebidas" + "nao atendidas"
 
-def remove_output_files(output_folder=OUTPUT_FOLDER):
-    if not os.path.exists(output_folder):
-        os.makedirs(output_folder)
-        print(f"📁 Diretório criado: {output_folder}")
+def clear_output_directory(output_dir=OUTPUT_DIR):
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
+        print(f"Pasta criada: {output_dir}")
     else:
-        files = glob.glob(os.path.join(output_folder, "*"))
-        for f in files:
+        for file_path in glob.glob(os.path.join(output_dir, "*")):
             try:
-                os.remove(f)
+                os.remove(file_path)
             except IsADirectoryError:
-                shutil.rmtree(f)
-        print(f"🧼 Diretório limpo: {output_folder}")
+                shutil.rmtree(file_path)
+        print(f"Pasta limpa: {output_dir}")
 
-def remover_nao_atendidas_apos_chamada_recebida(df):
+def normalize_number(number):
+    if pd.isna(number):
+        return ""
+    return (
+        str(number)
+        .strip()
+        .replace("'", "")
+        .replace(" ", "")
+        .removeprefix("+351")
+        .removeprefix("351")
+    )
+
+def remove_unanswered_after_received(df):
     df = df.copy()
     df["Data de Início"] = pd.to_datetime(df["Data de Início"], errors="coerce")
+    df["Origem_norm"] = df["Origem"].apply(normalize_number)
+    df["Destino_norm"] = df["Destino"].apply(normalize_number)
 
-    def normalize(n):
-        if pd.isna(n): return ""
-        return str(n).strip().replace("'", "").replace(" ", "").removeprefix("+351").removeprefix("351")
+    unanswered = df[df["Tipo"] == "Chamada Não Atendida"]
+    outgoing = df[df["Tipo"] == "Chamada efetuada"]
 
-    df["Origem_norm"] = df["Origem"].apply(normalize)
-    df["Destino_norm"] = df["Destino"].apply(normalize)
+    indices_to_remove = set()
 
-    chamadas_nao_atendidas = df[df["Tipo"] == "Chamada Não Atendida"]
-    chamadas_efetuadas = df[df["Tipo"] == "Chamada efetuada"]
+    for idx, na_call in unanswered.iterrows():
+        na_origin = na_call["Origem_norm"]
+        na_time = na_call["Data de Início"]
 
-    indices_para_remover = set()
-
-    for idx, row_na in chamadas_nao_atendidas.iterrows():
-        origem_na = row_na["Origem_norm"]
-        data_na = row_na["Data de Início"]
-
-        # Procurar chamadas efetuadas anteriores com destino igual à origem da NA
-        houve_chamada_para_essa_origem = chamadas_efetuadas[
-            (chamadas_efetuadas["Destino_norm"] == origem_na) &
-            (chamadas_efetuadas["Data de Início"] < data_na)
+        previous_outgoing = outgoing[
+            (outgoing["Destino_norm"] == na_origin) &
+            (outgoing["Data de Início"] < na_time)
         ]
 
-        if not houve_chamada_para_essa_origem.empty:
-            indices_para_remover.add(idx)
+        if not previous_outgoing.empty:
+            indices_to_remove.add(idx)
 
-    return df.drop(index=indices_para_remover).reset_index(drop=True)
+    return df.drop(index=indices_to_remove).reset_index(drop=True)
 
-def contar_chamadas(grupo):
-    grupo = grupo.sort_values('Data de Início', ascending=False).reset_index(drop=True)
-    grupo['Total Chamadas'] = pd.NA
-    usados = set()
+def count_calls_within_one_hour(group):
+    group = group.sort_values('Data de Início', ascending=False).reset_index(drop=True)
+    group['Total Chamadas'] = pd.NA
+    counted_indices = set()
 
-    for idx in grupo.index:
-        if idx in usados:
+    for idx in group.index:
+        if idx in counted_indices:
             continue
 
-        tipo = grupo.loc[idx, 'Tipo']
+        call_type = group.loc[idx, 'Tipo']
+        call_time = group.loc[idx, 'Data de Início']
 
-        if tipo == "Chamada recebida":
-            # Chamada atendida → não agrupa ninguém, conta sozinha
-            grupo.loc[idx, 'Total Chamadas'] = 1
-            usados.add(idx)
+        if call_type == "Chamada recebida":
+            group.loc[idx, 'Total Chamadas'] = 1
+            counted_indices.add(idx)
             continue
 
-        t = grupo.loc[idx, 'Data de Início']
-        # Define a janela de 1 hora anterior
-        janela = grupo[
-            (grupo['Data de Início'] <= t) & 
-            (grupo['Data de Início'] >= t - timedelta(hours=1))
-        ]
-        janela = janela[~janela.index.isin(usados)]
+        mask_window = (
+            (group['Data de Início'] <= call_time) & 
+            (group['Data de Início'] >= call_time - timedelta(hours=1))
+        ) & (~group.index.isin(counted_indices)) & (group["Tipo"] != "Chamada recebida")
 
-        # Exclui chamadas atendidas da janela
-        janela = janela[grupo.loc[janela.index, 'Tipo'] != "Chamada recebida"]
+        one_hour_window = group.loc[mask_window]
 
-        if len(janela) == 1:
-            grupo.loc[idx, 'Total Chamadas'] = 1
-            usados.add(idx)
-        elif len(janela) > 1:
-            grupo.loc[janela.index[0], 'Total Chamadas'] = len(janela)
-            usados.update(janela.index)
 
-    return grupo
+        if len(one_hour_window) == 1:
+            group.loc[idx, 'Total Chamadas'] = 1
+            counted_indices.add(idx)
+        elif len(one_hour_window) > 1:
+            group.loc[one_hour_window.index[0], 'Total Chamadas'] = len(one_hour_window)
+            counted_indices.update(one_hour_window.index)
 
-def filtrar_devoluções(df_filtrada, output_folder=OUTPUT_FOLDER):
-    """Filtra e exporta apenas as primeiras chamadas efetuadas válidas como devolução a cada chamada não atendida."""
+    return group
 
-    df = df_filtrada.copy()
-    df["Data de Início"] = pd.to_datetime(df["Data de Início"], errors='coerce')
+def filter_returns(df, output_dir=OUTPUT_DIR):
+    """
+    Identifica chamadas efetuadas que devolvem chamadas não atendidas
+    e exporta para efetuadas.csv de forma limpa e rastreável.
+    """
+    print(f"\033[1;34m\nA iniciar a identificação de devoluções...\033[0m")
 
-    # Normalize numbers
-    def normalize(n):
-        if pd.isna(n): return ""
-        return str(n).strip().replace("'", "").replace(" ", "").removeprefix("+351").removeprefix("351")
+    df = df.copy()
+    df["Data de Início"] = pd.to_datetime(df["Data de Início"], errors="coerce")
+    df["Origem_norm"] = df["Origem"].apply(normalize_number)
+    df["Destino_norm"] = df["Destino"].apply(normalize_number)
 
-    df["Origem_norm"] = df["Origem"].apply(normalize)
-    df["Destino_norm"] = df["Destino"].apply(normalize)
+    unanswered = df[df["Tipo"] == "Chamada Não Atendida"]
+    outgoing = df[df["Tipo"] == "Chamada efetuada"]
 
-    chamadas_na = df[df["Tipo"] == "Chamada Não Atendida"]
-    chamadas_eff = df[df["Tipo"] == "Chamada efetuada"]
+    print(f"{len(unanswered)} chamadas não atendidas encontradas")
+    #print(f"{len(outgoing)} chamadas efetuadas encontradas")
 
-    devolucoes = []
+    returns = []
 
-    for _, row_na in chamadas_na.iterrows():
-        origem = row_na["Origem_norm"]
-        destino = row_na["Destino_norm"]
-        data_na = row_na["Data de Início"]
+    for idx, na_call in unanswered.iterrows():
+        na_origin = na_call["Origem_norm"]
+        na_dest = na_call["Destino_norm"]
+        na_time = na_call["Data de Início"]
 
-        candidatos = chamadas_eff[
-            (chamadas_eff["Origem_norm"] == destino) &
-            (chamadas_eff["Destino_norm"] == origem) &
-            (chamadas_eff["Data de Início"] > data_na)
+        #print(f"\n NA idx={idx} | Origem={na_origin} | Destino={na_dest} | Data={na_time}")
+
+        matching_outgoing = outgoing[
+            (outgoing["Origem_norm"] == na_dest) &
+            (outgoing["Destino_norm"] == na_origin) &
+            (outgoing["Data de Início"] > na_time) &
+            (outgoing["Data de Início"] <= na_time + timedelta(days=3))
         ].sort_values("Data de Início")
 
-        if not candidatos.empty:
-            first_return = candidatos.iloc[0].copy()
-            first_return["Data Chamada Não Atendida"] = data_na
-            devolucoes.append(first_return)
+        if not matching_outgoing.empty:
+            first_return = matching_outgoing.iloc[0].copy()
+            return_time = first_return["Data de Início"]
+            tempo_devolucao = (return_time - na_time).total_seconds()
 
-    df_retornos = pd.DataFrame(devolucoes)
+            #print(f" Devolução encontrada em {return_time} ({tempo_devolucao:.0f} s depois)")
 
-    # ✅ Only keep 'Chamada efetuada' rows in output
-    df_retornos = df_retornos[df_retornos["Tipo"] == "Chamada efetuada"]
+            first_return["Data Chamada Não Atendida"] = na_time
+            first_return["Tempo até Devolução (s)"] = tempo_devolucao
+            returns.append(first_return)
+        #else:
+            #print(f"Nenhuma devolução encontrada para esta chamada NA.")
 
-    output_path = os.path.join(output_folder, "chamadas_efetuadas.csv")
-    df_retornos.to_csv(output_path, index=False, sep=";")
-    print(f"📄 Ficheiro de chamadas efetuadas (devoluções) guardado em: {output_path}")
+    returns_df = pd.DataFrame(returns)
 
-    return df_retornos
+    if not returns_df.empty:
+        output_path = os.path.join(output_dir, "devolvidas.csv")
+        returns_df = returns_df.sort_values("Data de Início").reset_index(drop=True)
+        returns_df.to_csv(output_path, index=False, sep=";")
+        #print(f"\nDevoluções exportadas para: {output_path} ({len(returns_df)} registos)")
+   # else:
+      #  print("\nNenhuma devolução identificada. efetuadas.csv não foi gerado.")
+
+    return returns_df
 
 
-def copy_input_to_output(dados_completos=DADOS_COMPLETOS, output_file=OUTPUT_FILE):
-    if not Path(dados_completos).exists():
-        print(f"❌ Arquivo de input não encontrado: {dados_completos}")
+def process_and_clean_input(input_file=INPUT_FILE, clean_output_file=CLEAN_OUTPUT_FILE):
+    if not Path(input_file).exists():
+        print(f"❌ Arquivo de input não encontrado: {input_file}")
         return
 
     try:
-        df_completa = pd.read_csv(dados_completos, delimiter=";", skiprows=2)
-        df_filtrada = pd.read_csv(dados_completos, delimiter=";", skiprows=2, header=0)
+        df = pd.read_csv(input_file, delimiter=";", skiprows=2)
 
-        print(df_filtrada.head(20))
-        output_path = os.path.join(OUTPUT_FOLDER, "teste.csv")
-        df_filtrada.to_csv(output_path, index=False, sep=";")
+        df = remove_unanswered_after_received(df)
+        df = df[df["Tipo"].isin(["Chamada recebida", "Chamada Não Atendida", "Chamada efetuada"])]
 
-        # ❗ Remove inbound replies to our outbound calls
-        df_filtrada = remover_nao_atendidas_apos_chamada_recebida(df_filtrada)
+        df = df.drop_duplicates(subset="Identificador Global da Chamada").reset_index(drop=True)
 
-        tipos_desejados = ["Chamada recebida", "Chamada Não Atendida"]
-        df_filtrado = df_filtrada[df_filtrada["Tipo"].isin(tipos_desejados)]
-
-        df_final = df_filtrado.drop_duplicates(subset="Identificador Global da Chamada", keep="first").reset_index(drop=True)
-
-        required_cols = ['Origem', 'Data de Início', 'Tipo']
-        missing_cols = [col for col in required_cols if col not in df_filtrada.columns]
-        if missing_cols:
-            print(f"⚠️ Aviso: Colunas obrigatórias ausentes após leitura: {missing_cols}")
-
-       
-
-
-        colunas_a_remover = [
-            "Utilizador",
-            "Telefone de Origem",
-            "Número de Páginas do Fax",
-            "Tipo de Telefone",
-            "Contexto de Acesso da Chamada",
-            "Tipo de localização",
-            "Serviço",
-            "Tempo da Fila de Espera",
-            "País",
-            "Identificação de chamada reencaminhada",
-            "Percurso no Grupo de Atendimento",
-            "Tipo de Encaminhamento"
+        # Clean unnecessary columns
+        unnecessary_columns = [
+            "Utilizador", "Telefone de Origem", "Número de Páginas do Fax", "Tipo de Telefone",
+            "Contexto de Acesso da Chamada", "Tipo de localização", "Serviço",
+            "Tempo da Fila de Espera", "País", "Identificação de chamada reencaminhada",
+            "Percurso no Grupo de Atendimento", "Tipo de Encaminhamento"
         ]
+        df = df.drop(columns=[col for col in unnecessary_columns if col in df.columns], errors='ignore')
 
-        df_final = df_final.drop(columns=[col for col in colunas_a_remover if col in df_final.columns])
+        df["Data de Início"] = pd.to_datetime(df["Data de Início"], errors="coerce")
 
-        # Garantir formato datetime
-        df_final['Data de Início'] = pd.to_datetime(df_final['Data de Início'], errors='coerce')
+        # Filter test numbers and Paradela 
+        blocked_origins = ['Anónimo', '+351938116613', '+351915942292', '+351935991897']
+        blocked_destinations = ['+351234246184']
 
-        # Função corrigida para contagem por janela de 1 hora por número de origem
-      
-        ###Filtro de numeros chamadas testes
-        # Remove espaços em branco e aspas extras da coluna "Origem"
-        df_final['Origem'] = df_final['Origem'].str.strip().str.replace("'", "", regex=False)
+        df["Origem"] = df["Origem"].str.strip().str.replace("'", "")
+        df["Destino"] = df["Destino"].str.strip().str.replace("'", "")
 
-        valores_remover = ['Anónimo', '+351938116613', '+351915942292', '+351935991897']
-        telf_paradela = ['+351234246184']
+        df = df[~df["Origem"].isin(blocked_origins)]
+        df = df[~df["Destino"].isin(blocked_destinations)]
 
-        # Remove espaços e aspas extras antes de comparar
-        df_final['Destino'] = df_final['Destino'].str.strip().str.replace("'", "")
+        df = df.groupby("Origem", group_keys=False).apply(count_calls_within_one_hour)
+        df["Total Chamadas"] = pd.to_numeric(df["Total Chamadas"], errors="coerce").astype("Int64")
 
-        # Remove as linhas de nrs filtrados
-        df_final = df_final[~df_final['Origem'].isin(valores_remover)]
-        df_final = df_final[~df_final['Destino'].isin(telf_paradela)]
+        df = df.sort_values("Data de Início", ascending=False).reset_index(drop=True)
+        df.to_csv(clean_output_file, index=False, sep=";")
+        print(f"Dados limpos exportados para: {clean_output_file}")
 
-        # Garante que 'Data de Início' está em datetime
-        df_final['Data de Início'] = pd.to_datetime(df_final['Data de Início'])
+        returns_df = filter_returns(df, OUTPUT_DIR)
+    
+        # Generate não atendidas + recebidas file
+        na_recebidas_df = df[df["Tipo"].isin(["Chamada Não Atendida", "Chamada recebida"])]
+        na_recebidas_path = os.path.join(OUTPUT_DIR, "recebidas.csv")
+        na_recebidas_df.to_csv(na_recebidas_path, index=False, sep=";")
+        #print(f"Ficheiro de não atendidas + recebidas exportado para: {na_recebidas_path}")
 
-        # Aplica por número de origem
-        df_final = df_final.groupby('Origem', group_keys=False).apply(contar_chamadas)
+        # Generate combined (devolvidas + não atendidas + recebidas)
+        #returns_path = os.path.join(OUTPUT_DIR, "efetuadas.csv")
+        #returns_df.to_csv(returns_path, index=False, sep=";")
 
-  
-        df_final['Total Chamadas'] = pd.to_numeric(df_final['Total Chamadas'], errors='coerce').astype('Int64')
-
-        df_final = df_final.sort_values('Data de Início', ascending=False).reset_index(drop=True)
-
-        # Exporta o resultado
-        output_path = os.path.join(OUTPUT_FOLDER, "chamadas_efetuadas.csv")
-        df_filtrada.to_csv(output_path, index=False, sep=";")
-
-
-        df_final.to_csv(output_file, index=False, sep=";")
-        print(f"📄 Ficheiro processado e copiado: {dados_completos} ➡️ {output_file}")
-
-        devolucoes = filtrar_devoluções(df_filtrada, OUTPUT_FOLDER)
-
-        df_combined = pd.concat([df_final, devolucoes], ignore_index=True)
-        df_combined["Data de Início"] = pd.to_datetime(df_combined["Data de Início"], errors='coerce')
-
-        # Ordenar do mais recente para o mais antigo
-        df_combined = df_combined.sort_values("Data de Início", ascending=False)
-        combined_output_path = os.path.join(OUTPUT_FOLDER, "combined_results.csv")
-        df_combined.to_csv(combined_output_path, index=False, sep=";")
-        print(f"📄 Ficheiro combinado guardado em: {combined_output_path}")
-
+        
     except Exception as e:
-        print(f"❌ Erro ao processar o ficheiro de input: {e}")
+        print(f"❌ Erro ao processar: {e}")
 
 def setup_cleaning_environment():
-    print("🧹 Preparando ambiente de limpeza...")
-    remove_output_files()
-    copy_input_to_output()
-    print("\n🔍 Verificando arquivos gerados...")
-    
-    # Verifica os arquivos criados
-    for fname in ["clean_data.csv", "chamadas_efetuadas.csv"]:
-        path = os.path.join(OUTPUT_FOLDER, fname)
-        if os.path.exists(path):
-            df = pd.read_csv(path, sep=";")
-            print(f"  {fname}: {len(df)} registros (Tipos: {df['Tipo'].unique()})")
-        else:
-            print(f"  ⚠️ {fname} não encontrado")
-    
-    # Processa a combinação
-    print("\n🔄 Combinando arquivos...")
-    copy_input_to_output()
-    print("✅ Ambiente pronto.")
+    print("Inicio da limpeza de dados e filtragem...")
+    clear_output_directory()
+    process_and_clean_input()
+    print("✅ Ambiente de limpeza concluído.")
+
