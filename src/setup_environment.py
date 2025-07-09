@@ -5,7 +5,7 @@ import shutil
 from pathlib import Path
 import pandas as pd
 
-INPUT_FILE = "../input/junho.csv"
+INPUT_FILE = "../input/maio.csv"
 OUTPUT_DIR = "../output"
 CLEAN_OUTPUT_FILE = os.path.join(OUTPUT_DIR, "todas.csv") #efetuadas(total - dev ou feedback) + "recebidas" + "nao atendidas"
 
@@ -108,7 +108,6 @@ def filter_returns(df, output_dir=OUTPUT_DIR):
     outgoing = df[df["Tipo"] == "Chamada efetuada"]
 
     print(f"{len(unanswered)} chamadas não atendidas encontradas")
-    #print(f"{len(outgoing)} chamadas efetuadas encontradas")
 
     returns = []
 
@@ -116,8 +115,6 @@ def filter_returns(df, output_dir=OUTPUT_DIR):
         na_origin = na_call["Origem_norm"]
         na_dest = na_call["Destino_norm"]
         na_time = na_call["Data de Início"]
-
-        #print(f"\n NA idx={idx} | Origem={na_origin} | Destino={na_dest} | Data={na_time}")
 
         matching_outgoing = outgoing[
             (outgoing["Origem_norm"] == na_dest) &
@@ -131,13 +128,13 @@ def filter_returns(df, output_dir=OUTPUT_DIR):
             return_time = first_return["Data de Início"]
             tempo_devolucao = (return_time - na_time).total_seconds()
 
-            #print(f" Devolução encontrada em {return_time} ({tempo_devolucao:.0f} s depois)")
+            print(f" Devolução encontrada em {return_time} ({tempo_devolucao:.0f} s depois)")
 
             first_return["Data Chamada Não Atendida"] = na_time
             first_return["Tempo até Devolução (s)"] = tempo_devolucao
             returns.append(first_return)
-        #else:
-            #print(f"Nenhuma devolução encontrada para esta chamada NA.")
+        else:
+            print(f"Nenhuma devolução encontrada para esta chamada NA.")
 
     returns_df = pd.DataFrame(returns)
 
