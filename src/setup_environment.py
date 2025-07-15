@@ -5,7 +5,7 @@ import shutil
 from pathlib import Path
 import pandas as pd
 
-INPUT_FILE = "../input/maio.csv"
+INPUT_FILE = "../input/maio01_13.csv"
 OUTPUT_DIR = "../output"
 CLEAN_OUTPUT_FILE = os.path.join(OUTPUT_DIR, "todas.csv") #efetuadas(total - dev ou feedback) + "recebidas" + "nao atendidas"
 
@@ -19,7 +19,6 @@ def clear_output_directory(output_dir=OUTPUT_DIR):
                 os.remove(file_path)
             except IsADirectoryError:
                 shutil.rmtree(file_path)
-        print(f"Pasta limpa: {output_dir}")
 
 def normalize_number(number):
     if pd.isna(number):

@@ -2,34 +2,32 @@ from datetime import timedelta
 import pandas as pd
 
 def count_calls_within_one_hour(group):
-    group = group.sort_values('Data de Início', ascending=False).reset_index(drop=True)
+   # group['Data de Início'] = pd.to_datetime(group['Data de Início'], format='%Y-%m-%d %H:%M:%S', errors='coerce')
+    group['Data de Início'] = pd.to_datetime(
+    group['Data de Início'],
+    format='%d/%m/%y %H:%M',
+    errors='coerce'
+)
+
+    group = group.sort_values('Data de Início').reset_index(drop=True)
     group['Total Chamadas'] = pd.NA
-    counted_indices = set()
 
-    for idx in group.index:
-        if idx in counted_indices:
-            continue
+    filtered_group = group[group['Tipo'].str.strip().str.lower() != 'chamada efetuada']
 
-        call_type = group.loc[idx, 'Tipo']
+    for idx in filtered_group.index:
         call_time = group.loc[idx, 'Data de Início']
 
-        if call_type == "Chamada recebida":
-            group.loc[idx, 'Total Chamadas'] = 1
-            counted_indices.add(idx)
-            continue
+        janela_inicio = call_time - timedelta(hours=1)
+        same_origin_mask = (
+            (group['Origem'] == group.loc[idx, 'Origem']) &
+            (group['Tipo'].str.strip().str.lower() != 'chamada efetuada') &
+            (group['Data de Início'] >= janela_inicio) &
+            (group['Data de Início'] <= call_time)
+        )
 
-        mask_window = (
-            (group['Data de Início'] <= call_time) & 
-            (group['Data de Início'] >= call_time - timedelta(hours=1))
-        ) & (~group.index.isin(counted_indices)) & (group["Tipo"] != "Chamada recebida")
+        total_chamadas = same_origin_mask.sum()
 
-        one_hour_window = group.loc[mask_window]
-
-        if len(one_hour_window) == 1:
-            group.loc[idx, 'Total Chamadas'] = 1
-            counted_indices.add(idx)
-        elif len(one_hour_window) > 1:
-            group.loc[one_hour_window.index[0], 'Total Chamadas'] = len(one_hour_window)
-            counted_indices.update(one_hour_window.index)
+        if total_chamadas > 0:
+            group.loc[idx, 'Total Chamadas'] = total_chamadas
 
     return group

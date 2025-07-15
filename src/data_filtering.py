@@ -68,14 +68,12 @@ def process_and_clean_input(input_file=INPUT_FILE, clean_output_file=CLEAN_OUTPU
 
         df = df.sort_values("Data de Início", ascending=False).reset_index(drop=True)
         df.to_csv(clean_output_file, index=False, sep=";")
-        print(f"Clean data exported to: {clean_output_file}")
-
+       
         filter_returns(df, OUTPUT_DIR)
 
         na_recebidas_df = df[df["Tipo"].isin(["Chamada Não Atendida", "Chamada recebida"])]
         na_recebidas_path = os.path.join(OUTPUT_DIR, "recebidas.csv")
         na_recebidas_df.to_csv(na_recebidas_path, index=False, sep=";")
-        print(f"Recebidas e não atendidas exported to: {na_recebidas_path}")
-
-    except Exception as e:
-        print(f"❌ Error processing: {e}")
+        
+    except Exception:
+        print(f"Error")

@@ -93,33 +93,25 @@ def analisar_chamadas(input_file=INPUT_FILE):
                 numeros_nao_devolvidos = set(numeros_nao_atendidos) - set(numeros_devolvidos)
                 chamadas_nao_devolvidas_unicas = len(numeros_nao_devolvidos)
 
-                print("Números de chamadas não atendidas e não devolvidas:")
-                for numero in sorted(numeros_nao_devolvidos):
-                    print(f"- {numero}")
+                
             else:
-                print("Nenhuma chamada devolvida encontrada. Todos os não atendidos são considerados não devolvidos.")
                 chamadas_nao_devolvidas_unicas = df_nao_recebidas["Origem_norm"].nunique()
-                for numero in sorted(df_nao_recebidas["Origem_norm"].unique()):
-                    print(f"- {numero}")
+                
 
         df_recebidas = df_recebidas.copy()
         df_nao_recebidas = df_nao_recebidas.copy()
         df_devolvidas = df_devolvidas.copy()
 
-        print()
-
-        print("📊 Estatísticas das chamadas recebidas:")
+        print("Estatísticas das chamadas recebidas:")
         print(f"- Total de chamadas: {total_chamadas}")
         print(f"- Total de chamadas atendidas: {total_chamadas_atendidas}")
         print(f"- Total de chamadas não atendidas: {total_chamadas_nao_atendidas}")
         print(f"- Chamadas com tempo de espera < 60s: {chamadas_rapidas}")
         print(f"- Tempo médio de espera - atendidas: {tempo_medio_espera} segundos")
         print(f"- Duração média das chamadas: {duracao_media:.1f} segundos")
-
-
-
+        print()
         print(f"Total de Chamadas (nrs únicos): {chamadas_atendidas_nrs_unicos}")
-    
+        print()
         print("Chamadas Atendidas")
         print("------------------")
         print(f"Total Chamadas Atendidas: {total_chamadas_atendidas}")
@@ -147,16 +139,14 @@ def analisar_chamadas(input_file=INPUT_FILE):
     #     print(f"% devolvidas sobre chamadas não atendidas (nrs únicos): {round(percentagem_devolvidas_sobre_nao_atendidas, 2)}%")
     # # print(f"% devolvidas sobre chamadas não atendidas (nrs únicos - nunca atendidos): {round(percentagem_devolvidas_sobre_nao_atendidas_corrigida, 2)}%")
 
-    #     if chamadas_devolvidas > 0 and 'Duração' in df_devolvidas.columns and pd.notna(duracao_media_devolvidas):
+        #if chamadas_devolvidas > 0 and 'Duração' in df_devolvidas.columns and pd.notna(duracao_media_devolvidas):
     #         minutos = int(duracao_media_devolvidas.total_seconds() // 60)
     #         segundos = int(duracao_media_devolvidas.total_seconds() % 60)
     #         print(f"Duração média das chamadas (devolvidas): {minutos}min e {segundos}s")
     #     else:
     #         print("Duração média das chamadas (devolvidas): N/A")
     #     print(f"Tempo médio entre não atendida e devolvida: {tempo_medio_formatado if tempo_medio_formatado is not None else 'N/A'}\n")
-
-
-
+        print()
         print("Chamadas Não Devolvidas")
         print("------------------")
         print(f"Chamadas não atendidas e não devolvidas (nrs únicos): {chamadas_nao_devolvidas_unicas}")
