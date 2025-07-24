@@ -8,7 +8,7 @@ import os
 import calls_counting
 
 
-INPUT_FILE = "../input/chamadas_todas.csv"
+INPUT_FILE = "../input/CallsSince01Jan.csv"
 OUTPUT_DIR = "../output_paradela"
 CLEAN_OUTPUT_FILE = os.path.join(OUTPUT_DIR, "todas_paradela.csv")
 DEVOLVIDAS_FILE = os.path.join(OUTPUT_DIR, "chamadas_devolvidas.csv")
