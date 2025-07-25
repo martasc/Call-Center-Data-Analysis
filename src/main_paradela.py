@@ -125,6 +125,14 @@ def process_and_clean_paradela(input_file=INPUT_FILE, clean_output_file=CLEAN_OU
         # Normalizar números ANTES de filtrar
         df["Destino_norm"] = df["Destino"].astype(str).apply(normalizar_numero)
         df["Origem_norm"] = df["Origem"].astype(str).apply(normalizar_numero)
+
+        # Filter out calls from/to 91599948484
+        print(df.head())
+        df = df[
+            (df["Destino_norm"] != "351915942292") &
+            (df["Origem_norm"] != "351915942292")
+        ]
+
         
         mask = (
             ((df["Destino_norm"] == "351234246184") | (df["Origem_norm"] == "351234246184")) & 
@@ -296,6 +304,18 @@ def setup_cleaning_environment_paradela():
         chamadas_devolvidas, chamadas_nao_devolvidas = identificar_devolvidas(df)
 
         df_with_total_chamadas = calculo_metricas(df, chamadas_devolvidas, chamadas_nao_devolvidas)
+
+        unnecessary_columns = [
+            "Utilizador", "Telefone de Origem", "Número de Páginas do Fax", "Tipo de Telefone",
+            "Contexto de Acesso da Chamada", "Tipo de localização", "Serviço",
+            "Tempo da Fila de Espera", "País", "Identificação de chamada reencaminhada", "Identificação Chamada", "Identificador Global da Chamada",
+            "Percurso no Grupo de Atendimento", "Tipo de Encaminhamento", 
+            "Origem_norm", "Destino_norm", "Destino"  # <== now safe to drop "Destino"
+        ]
+        df_with_total_chamadas = df_with_total_chamadas.drop(
+            columns=[col for col in unnecessary_columns if col in df_with_total_chamadas.columns],
+            errors='ignore'
+        )
 
         df_with_total_chamadas = df_with_total_chamadas.sort_values('Data de Início', ascending=False)
         output_file = os.path.join(OUTPUT_DIR, "todas_paradela.csv")
