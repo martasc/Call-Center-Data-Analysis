@@ -1,0 +1,12 @@
+[BUG]: no found input "calculo_SLAs.py"
+
+## Command Line
+/Users/martacarvalho/Documents/Development/Global Connect/env/bin/pyarmor gen main.py main_paradela.py calls_counting.py config.py data_filtering.py metricas.py return_calls.py setup_environment.py utils.py calculo_SLAs.py calculo_kpis.py chamadas_nao_atendidas.py contagem_nrs_unicos.py display_SLAs.py kpi_chamadas_devolvidas.py limpeza_dados.py
+
+## Environments
+Python 3.13.2
+Pyarmor 9.1.8 (trial), 000000, non-profits
+Platform darwin.aarch64
+Native darwin.arm64
+Home /Users/martacarvalho/.pyarmor
+

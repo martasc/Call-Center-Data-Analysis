@@ -1,0 +1,18 @@
+Tipo;Data de Início;Tempo de Toque;Duração;Data de Fim;Fuso Horário;Origem;Destino Final;Atendida;Causa de Não Atendimento;Total Chamadas
+Chamada recebida;;0:00:12;0:02:22;2025-07-10 15:55:42;'Europe/Lisbon';'+351210205287';'260283.1704827218a.geo1';Atendida;;
+Chamada recebida;;0:00:11;0:01:22;2025-07-01 16:33:14;'Europe/Lisbon';'+351211121846';'260283.1704827218a.geo1';Atendida;;
+Chamada recebida;;0:00:20;0:01:35;2025-06-09 11:43:22;'Europe/Lisbon';'+351217542320';'260283.1704827218a.geo1';Atendida;;
+Chamada Não Atendida;;0:00:04;;2025-01-29 10:49:15;'Europe/Lisbon';'+351225001492';'260283.1704827218a.geo1';Não atendida;Cancelada pela origem;
+Chamada Não Atendida;;0:00:21;;2025-06-04 17:41:26;'Europe/Lisbon';'+351917777055';'260283.1704827218a.geo1';Não atendida;Cancelada pela origem;
+Chamada Não Atendida;;0:00:59;;2025-06-10 09:54:02;'Europe/Lisbon';'+351928038097';'260283.1704827218a.geo1';Não atendida;Cancelada pela origem;
+Chamada recebida;;0:00:13;0:01:39;2025-06-13 09:48:51;'Europe/Lisbon';'+351939072626';'260283.1704827218a.geo1';Atendida;;
+Chamada Não Atendida;;0:00:02;;2025-06-13 09:46:45;'Europe/Lisbon';'+351939072626';'260283.1704827218a.geo1';Não atendida;Cancelada pela origem;
+Chamada recebida;;0:00:17;0:02:06;2025-06-11 10:11:06;'Europe/Lisbon';'+351939072626';'260283.1704827218a.geo1';Atendida;;
+Chamada recebida;;0:00:12;0:04:09;2025-02-13 15:21:56;'Europe/Lisbon';'+351969787221';'260283.1704827218a.geo1';Atendida;;
+Chamada Não Atendida;;0:00:58;;2025-02-13 15:07:48;'Europe/Lisbon';'+351969787221';'260283.1704827218a.geo1';Não atendida;Cancelada pela origem;
+Chamada efetuada;;0:00:06;0:02:21;2025-06-04 17:50:20;'Europe/Lisbon';'234246184';'917777055';Atendida;;
+Chamada efetuada;;0:00:21;0:01:16;2025-06-04 17:46:03;'Europe/Lisbon';'234246184';'917777055';Atendida;;
+Chamada efetuada;;0:00:08;;2025-01-28 11:04:23;'Europe/Lisbon';'234246184';'934198657';Não atendida;;
+Chamada efetuada;;0:00:10;;2025-01-28 11:01:37;'Europe/Lisbon';'234246184';'935991897';Não atendida;;
+Chamada Não Atendida;;0:00:00;;2025-01-28 10:52:20;'Europe/Lisbon';'234246184';;Não atendida;Chamada desviada;
+Chamada efetuada;;0:00:09;;2025-01-28 10:52:29;'Europe/Lisbon';'234246184';'962878547';Não atendida;;

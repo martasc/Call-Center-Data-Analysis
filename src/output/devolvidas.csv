@@ -1,0 +1,2 @@
+Tipo;Data de Início;Tempo de Toque;Duração;Data de Fim;Fuso Horário;Origem;Destino;Destino Final;Atendida;Identificação Chamada;Identificador Global da Chamada;Chamada gravada;Causa de Não Atendimento;Origem_norm;Destino_norm;Total Chamadas;Data Chamada Não Atendida;Tempo até Devolução (s)
+Chamada efetuada;2025-08-10 17:48:10;0:00:06;0:01:10;2025-08-10 17:49:27;'Europe/Lisbon';962878547;+351925847253;'925847253';Atendida;'00000011754808190810174810000014041800';'1a3bc833-6d0b-4396-a51f-a0a03888cc72';;;962878547;925847253;;2025-08-10 17:47:53;17.0

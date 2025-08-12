@@ -1,7 +1,7 @@
 import os
 import pandas as pd
 from pathlib import Path
-from config import OUTPUT_DIR, CLEAN_OUTPUT_FILE
+from config import OUTPUT_DIR, CLEAN_OUTPUT_FILE, RECEBIDAS_FILE
 from calls_counting import count_calls_within_one_hour
 from return_calls import filter_returns
 from utils import normalize_number
@@ -39,18 +39,16 @@ def process_and_clean_input(input_file_path):
         input_file_path (str/Path): Path to the input CSV file
     """
     try:
-        # Ensure output directory exists
+        print(f"🚀 Iniciando processamento de: {input_file_path}")
+
         Path(OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
         
-        # Read and clean data
         df = pd.read_csv(input_file_path, delimiter=";", skiprows=2)
         df = remove_unanswered_after_received(df)
         
-        # Filter call types
         df = df[df["Tipo"].isin(["Chamada recebida", "Chamada Não Atendida", "Chamada efetuada"])]
         df = df.drop_duplicates(subset="Identificador Global da Chamada").reset_index(drop=True)
 
-        # Remove unnecessary columns
         unnecessary_columns = [
             "Utilizador", "Telefone de Origem", "Número de Páginas do Fax", "Tipo de Telefone",
             "Contexto de Acesso da Chamada", "Tipo de localização", "Serviço",
@@ -59,12 +57,10 @@ def process_and_clean_input(input_file_path):
         ]
         df = df.drop(columns=[col for col in unnecessary_columns if col in df.columns], errors='ignore')
         
-        # Convert and clean data
         df["Data de Início"] = pd.to_datetime(df["Data de Início"], errors="coerce")
         
-        # Filter blocked numbers
         blocked_origins = ['Anónimo', '+351938116613', '+351915942292', '+351935991897']
-        blocked_destinations = ['+351234246184']
+        blocked_destinations = ['+351234246184', '90', '80', '401', '+351234246186', '+351234246185', '+351234246184' ]
         df["Origem"] = df["Origem"].str.strip().str.replace("'", "")
         df["Destino"] = df["Destino"].str.strip().str.replace("'", "")
         df = df[~df["Origem"].isin(blocked_origins)]
@@ -83,9 +79,12 @@ def process_and_clean_input(input_file_path):
 
         # Save received/missed calls
         na_recebidas_df = df[df["Tipo"].isin(["Chamada Não Atendida", "Chamada recebida"])]
-        na_recebidas_path = Path(OUTPUT_DIR) / "recebidas.csv"
-        na_recebidas_df.to_csv(na_recebidas_path, index=False, sep=";")
-        
+        na_recebidas_path = "recebidas.csv"
+        na_recebidas_df.to_csv(RECEBIDAS_FILE, index=False, sep=";")
+
+        print(f"📁 Guardado em: {RECEBIDAS_FILE}")
+        print(f"📁 Ficheiros existentes no output: {list(Path(OUTPUT_DIR).glob('*'))}")
+
         return True
         
     except Exception as e:

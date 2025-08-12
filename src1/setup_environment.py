@@ -4,7 +4,7 @@ import shutil
 from pathlib import Path
 import pandas as pd
 
-INPUT_FILE = "../input/hey.csv"
+INPUT_FILE = "../input/março.csv"
 OUTPUT_FOLDER = "../output"
 OUTPUT_FILE = os.path.join(OUTPUT_FOLDER, "clean_data.csv")
 

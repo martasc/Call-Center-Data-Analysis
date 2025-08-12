@@ -1,15 +1,14 @@
+import sys
 import pandas as pd
 from datetime import datetime, timedelta
 import os
 from datetime import timedelta
-import pandas as pd
-import os
 
 import calls_counting
 
 
-INPUT_FILE = "../input/CallsSince01Jan.csv"
-OUTPUT_DIR = "../output_paradela"
+BASE_DIR = os.path.dirname(os.path.abspath(sys.argv[0]))
+OUTPUT_DIR = os.path.join(BASE_DIR, "output_paradela")
 CLEAN_OUTPUT_FILE = os.path.join(OUTPUT_DIR, "todas_paradela.csv")
 DEVOLVIDAS_FILE = os.path.join(OUTPUT_DIR, "chamadas_devolvidas.csv")
 NAO_DEVOLVIDAS_FILE = os.path.join(OUTPUT_DIR, "chamadas_nao_devolvidas.csv")
@@ -38,12 +37,12 @@ def parse_datetime(row):
 def normalizar_numero(numero):
     if pd.isna(numero):
         return ""
-    # Remove caracteres não numéricos e prefixos
+  
     numero_limpo = ''.join(filter(str.isdigit, str(numero)))
-    # Padroniza o número 184
+
     if numero_limpo in ['234246184', '234246187']:
         return '351234246184' if numero_limpo == '234246184' else '351234246187'
-    # Adiciona 351 se necessário para números portugueses
+    
     if len(numero_limpo) == 9 and numero_limpo.startswith(('91', '92', '93', '96')):
         return '351' + numero_limpo
     return numero_limpo
@@ -53,7 +52,6 @@ def normalizar_numero(numero):
 def identificar_devolvidas(df, output_dir=OUTPUT_DIR, max_minutos=30):
     df = df.copy()
     
-    # Parse das datas - ajustado para o formato real "DD/MM/YY HH:MM"
     try:
         df['DataHora'] = pd.to_datetime(df['Data de Início'], 
                                       format='%d/%m/%y %H:%M', 
@@ -63,13 +61,11 @@ def identificar_devolvidas(df, output_dir=OUTPUT_DIR, max_minutos=30):
         return pd.DataFrame(), pd.DataFrame()
     
 
-    # Filtrar chamadas não atendidas (usando o Tipo exato como aparece nos dados)
     unanswered = df[
         (df['Destino_norm'] == '351234246184') & 
         (df['Tipo'].str.strip().str.lower() == 'chamada não atendida')
     ].copy()
     
-    # Filtrar chamadas efetuadas (devoluções)
     outgoing = df[
         (df['Origem_norm'] == '351234246184') & 
         (df['Tipo'].str.strip().str.lower() == 'chamada efetuada')
@@ -81,10 +77,10 @@ def identificar_devolvidas(df, output_dir=OUTPUT_DIR, max_minutos=30):
         na_origin = na_call['Origem_norm']
         na_time = na_call['DataHora']
         
-        if pd.isna(na_time):  # Pular se a data não foi convertida
+        if pd.isna(na_time):  
             continue
             
-        # Procurar chamadas de retorno dentro do período
+
         matching_outgoing = outgoing[
             (outgoing['Destino_norm'] == na_origin) &
             (outgoing['DataHora'] > na_time) &
@@ -95,7 +91,7 @@ def identificar_devolvidas(df, output_dir=OUTPUT_DIR, max_minutos=30):
             first_return = matching_outgoing.iloc[0]
             tempo_devolucao = (first_return['DataHora'] - na_time).total_seconds()
             
-            # Adicionar informações à chamada não atendida
+ 
             na_call['Devolvida'] = True
             na_call['Tempo até Devolução (s)'] = tempo_devolucao
             na_call['DataHora Devolução'] = first_return['DataHora']
@@ -103,11 +99,9 @@ def identificar_devolvidas(df, output_dir=OUTPUT_DIR, max_minutos=30):
             
             devolvidas_list.append(na_call)
     
-    # Criar DataFrames de resultados
     devolvidas_df = pd.DataFrame(devolvidas_list) if devolvidas_list else pd.DataFrame()
     nao_devolvidas_df = unanswered[~unanswered.index.isin(devolvidas_df.index)] if not unanswered.empty else pd.DataFrame()
     
-    # Salvar arquivos
     if not devolvidas_df.empty:
         devolvidas_df.to_csv(os.path.join(output_dir, 'chamadas_devolvidas.csv'), index=False, sep=';')
     if not nao_devolvidas_df.empty:
@@ -115,19 +109,17 @@ def identificar_devolvidas(df, output_dir=OUTPUT_DIR, max_minutos=30):
     
     return devolvidas_df, nao_devolvidas_df
 
-def process_and_clean_paradela(input_file=INPUT_FILE, clean_output_file=CLEAN_OUTPUT_FILE):
+def process_and_clean_paradela(input_file, clean_output_file):
     if not os.path.exists(input_file):
         return None
+    print(f"📄 A tentar abrir: {input_file}")
 
     try:
         df = pd.read_csv(input_file, delimiter=";", skiprows=2)
 
-        # Normalizar números ANTES de filtrar
         df["Destino_norm"] = df["Destino"].astype(str).apply(normalizar_numero)
         df["Origem_norm"] = df["Origem"].astype(str).apply(normalizar_numero)
 
-        # Filter out calls from/to 91599948484
-        print(df.head())
         df = df[
             (df["Destino_norm"] != "351915942292") &
             (df["Origem_norm"] != "351915942292")
@@ -196,57 +188,42 @@ def calculo_metricas(df, chamadas_devolvidas, chamadas_nao_devolvidas):
         df["Destino_norm"] = df["Destino"].apply(normalizar_numero)
         df["Origem_norm"] = df["Origem"].apply(normalizar_numero)
 
-    # First calculate Total Chamadas using your existing logic
-   # df = df.groupby("Origem", group_keys=False).apply(calls_counting.count_calls_within_one_hour)
-    #df["Total Chamadas"] = pd.to_numeric(df["Total Chamadas"], errors="coerce").astype("Int64")
-    print(type(df['Data de Início']))
-
-
-    # df = df.groupby("Origem", group_keys=False).apply(calls_counting.count_calls_within_one_hour)
-    # print(df[["Origem", "Data de Início", "Tipo", "Total Chamadas"]])
-
     df = df.groupby("Origem", group_keys=False).apply(calls_counting.count_calls_within_one_hour)
 
-    # Garantir ordenação final global por Data de Início (mais recente primeiro)
+
     df = df.sort_values('Data de Início', ascending=False).reset_index(drop=True)
 
-
-
-
-    # Filter out "efetuada" calls for our main metrics
     df_filtrado = df[~df["Tipo"].str.strip().str.lower().str.contains('efetuada')].copy()
     
-    # Convert time columns
+
     if 'Tempo de Toque' in df_filtrado.columns:
         df_filtrado["Tempo de Espera (s)"] = df_filtrado["Tempo de Toque"].apply(parse_tempo)
     
     if 'Duração' in df_filtrado.columns:
         df_filtrado["Duraçao (s)"] = df_filtrado["Duração"].apply(parse_tempo)
 
-    # Filter calls
+
     df_recebidas = df_filtrado[df_filtrado["Tipo"].str.strip().str.lower() == "chamada recebida"].copy()
     df_nao_recebidas = df_filtrado[df_filtrado["Tipo"].str.strip().str.lower() == "chamada não atendida"].copy()
 
-    # Basic counts
     total_chamadas = len(df_filtrado)
     total_chamadas_atendidas = len(df_recebidas)
     total_chamadas_nao_atendidas = len(df_nao_recebidas)
     total_chamadas_efetuadas = len(df[df["Tipo"].str.strip().str.lower() == "chamada efetuada"])
 
-    # Calculate average attempts using your Total Chamadas column
     if not df_recebidas.empty and 'Total Chamadas' in df_recebidas.columns:
         nr_medio_tentativas_atendidas = df_recebidas['Total Chamadas'].mean()
         chamadas_primeira_tentativa = (df_recebidas['Total Chamadas'] == 1).sum()
     else:
-        nr_medio_tentativas_atendidas = 1.0  # Default if no data
+        nr_medio_tentativas_atendidas = 1.0  
         chamadas_primeira_tentativa = 0
 
     if not df_nao_recebidas.empty and 'Total Chamadas' in df_nao_recebidas.columns:
         nr_medio_tentativas_nao_atendidas = df_nao_recebidas['Total Chamadas'].mean()
     else:
-        nr_medio_tentativas_nao_atendidas = 1.0  # Default if no data
+        nr_medio_tentativas_nao_atendidas = 1.0  
 
-    # Other metrics (duration, wait time etc.)
+
     if not df_recebidas.empty:
         percentagem_atendidas = (total_chamadas_atendidas / total_chamadas * 100) if total_chamadas > 0 else 0
         chamadas_rapidas = (df_recebidas["Tempo de Espera (s)"] < 60).sum()
@@ -260,7 +237,6 @@ def calculo_metricas(df, chamadas_devolvidas, chamadas_nao_devolvidas):
         duracao_media = 0
         tempo_medio_espera = 0
 
-    # Print comprehensive report
     print("\n=== Estatísticas Completas ===")
     print(f"\nTotal de chamadas (excluindo efetuadas): {total_chamadas}")
     print(f"Chamadas atendidas: {total_chamadas_atendidas} ({percentagem_atendidas:.1f}%)")
@@ -276,21 +252,17 @@ def calculo_metricas(df, chamadas_devolvidas, chamadas_nao_devolvidas):
     print(f"Duração média (atendidas): {duracao_media:.1f}s")
     print(f"Chamadas atendidas em <60s: {perc_rapidas:.1f}%")
 
-    # Devolvidas metrics
     if chamadas_devolvidas is not None and not chamadas_devolvidas.empty:
         print(f"\nChamadas devolvidas: {len(chamadas_devolvidas)}")
     if chamadas_nao_devolvidas is not None and not chamadas_nao_devolvidas.empty:
-        # Primeiro precisamos identificar quais números não atendidos tiveram chamadas atendidas posteriormente
         numeros_com_atendimento = set()
         
-        # Pegar todos os números que tiveram chamadas atendidas
         chamadas_atendidas = df[
             (df['Tipo'].str.strip().str.lower() == 'chamada recebida') &
             (df['Destino_norm'] == '351234246184')
         ]
         numeros_com_atendimento.update(chamadas_atendidas['Origem_norm'].unique())
         
-        # Filtrar as não devolvidas: apenas as que não estão nos números com atendimento
         verdadeiras_nao_devolvidas = chamadas_nao_devolvidas[
             ~chamadas_nao_devolvidas['Origem_norm'].isin(numeros_com_atendimento)
         ]
@@ -299,7 +271,10 @@ def calculo_metricas(df, chamadas_devolvidas, chamadas_nao_devolvidas):
         return df
 
 def setup_cleaning_environment_paradela():
-    df = process_and_clean_paradela()
+    print(f"🔍 Diretório atual: {os.getcwd()}")
+    print(f"📂 INPUT_FILE definido como: {INPUT_FILE}")
+    df = process_and_clean_paradela(INPUT_FILE, CLEAN_OUTPUT_FILE)
+
     if df is not None:
         chamadas_devolvidas, chamadas_nao_devolvidas = identificar_devolvidas(df)
 
@@ -310,7 +285,7 @@ def setup_cleaning_environment_paradela():
             "Contexto de Acesso da Chamada", "Tipo de localização", "Serviço",
             "Tempo da Fila de Espera", "País", "Identificação de chamada reencaminhada", "Identificação Chamada", "Identificador Global da Chamada",
             "Percurso no Grupo de Atendimento", "Tipo de Encaminhamento", 
-            "Origem_norm", "Destino_norm", "Destino"  # <== now safe to drop "Destino"
+            "Origem_norm", "Destino_norm", "Destino" 
         ]
         df_with_total_chamadas = df_with_total_chamadas.drop(
             columns=[col for col in unnecessary_columns if col in df_with_total_chamadas.columns],
@@ -321,8 +296,20 @@ def setup_cleaning_environment_paradela():
         output_file = os.path.join(OUTPUT_DIR, "todas_paradela.csv")
         df_with_total_chamadas.to_csv(output_file, index=False, sep=';')
 
-        print(f"\n✅ CSV final gerado em: {output_file}")
-
+        print(f"\nCSV final gerado em: {output_file}")
 
 if __name__ == "__main__":
+    if len(sys.argv) >= 2:
+        INPUT_FILE = os.path.abspath(sys.argv[1])
+        print(f"📥 CSV fornecido por argumento: {INPUT_FILE}")
+    else:
+        INPUT_FILE = os.path.join(BASE_DIR, "input", "CallsSince01Jan.csv")
+        print(f"📥 Usando CSV padrão: {INPUT_FILE}")
+
+    OUTPUT_DIR = os.path.join(BASE_DIR, "output_paradela")
+    CLEAN_OUTPUT_FILE = os.path.join(OUTPUT_DIR, "todas_paradela.csv")
+    DEVOLVIDAS_FILE = os.path.join(OUTPUT_DIR, "chamadas_devolvidas.csv")
+    NAO_DEVOLVIDAS_FILE = os.path.join(OUTPUT_DIR, "chamadas_nao_devolvidas.csv")
+
+    print(f"📂 OUTPUT_DIR definido como: {OUTPUT_DIR}")
     setup_cleaning_environment_paradela()

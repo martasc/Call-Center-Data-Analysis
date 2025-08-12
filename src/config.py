@@ -1,19 +1,12 @@
 from pathlib import Path
-import os
+import sys
 
-# Base directory (points to src/)
-BASE_DIR = Path(__file__).resolve().parent
+if getattr(sys, 'frozen', False):
+    BASE_DIR = Path(sys.executable).parent
+else:
+    BASE_DIR = Path(__file__).resolve().parent
 
-# Input/Output directories
-INPUT_DIR = BASE_DIR.parent / "input"
-OUTPUT_DIR = BASE_DIR.parent / "output"
-
-# Create directories if they don't exist
-INPUT_DIR.mkdir(parents=True, exist_ok=True)
-OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
-
-# Processed file paths
-CLEAN_OUTPUT_FILE = OUTPUT_DIR / "todas.csv"
+OUTPUT_DIR = BASE_DIR / "output"
+CLEAN_OUTPUT_FILE = OUTPUT_DIR / "cleaned.csv"
 RECEBIDAS_FILE = OUTPUT_DIR / "recebidas.csv"
-NAO_ATENDIDAS_FILE = OUTPUT_DIR / "nao_atendidas.csv"
 DEVOLVIDAS_FILE = OUTPUT_DIR / "devolvidas.csv"

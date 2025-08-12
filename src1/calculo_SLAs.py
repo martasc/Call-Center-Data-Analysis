@@ -1,6 +1,7 @@
 import pandas as pd
 from datetime import timedelta
 import os
+from config import DEV, RECEBIDAS_FILE, DEVOLVIDAS_FILE
 
 from chamadas_nao_atendidas import formatar_tempo
 
@@ -21,7 +22,7 @@ def processar_dados_chamadas():
     # === Carregar ficheiros ===
     df_clean = pd.read_csv('../output/clean_data.csv', delimiter=';', quotechar="'")
     try:
-        df_devolvidas = pd.read_csv('../output/chamadas_devolvidas.csv', delimiter=';', quotechar="'")
+        df_devolvidas = pd.read_csv(DEVOLVIDAS_FILE, delimiter=';', quotechar="'")
     except FileNotFoundError:
         print("[!] Arquivo chamadas_devolvidas.csv não encontrado.")
         df_devolvidas = pd.DataFrame(columns=['Origem', 'Tempo até Devolução (s)'])

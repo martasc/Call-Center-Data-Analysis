@@ -1,0 +1,37 @@
+2025-08-12 09:41:10,827 - Estatísticas das chamadas recebidas:
+2025-08-12 09:41:10,827 - - Total de chamadas: 15
+2025-08-12 09:41:10,827 - - Total de chamadas atendidas: 13
+2025-08-12 09:41:10,827 - - Total de chamadas não atendidas: 2
+2025-08-12 09:41:10,827 - - Chamadas com tempo de espera < 60s: 13
+2025-08-12 09:41:10,827 - - Chamadas com tempo de espera < 20s: 13
+2025-08-12 09:41:10,827 - - Tempo médio de espera - atendidas: 10.076923076923077 segundos
+2025-08-12 09:41:10,827 - - Duração média das chamadas: 311.7 segundos
+
+2025-08-12 09:41:10,827 - Total de Chamadas (nrs únicos): 13
+
+2025-08-12 09:41:10,827 - Chamadas Atendidas
+2025-08-12 09:41:10,827 - ------------------
+2025-08-12 09:41:10,827 - Total Chamadas Atendidas: 13
+2025-08-12 09:41:10,827 - % Chamadas Atendidas: 87%
+2025-08-12 09:41:10,827 - Chamadas com tempo de espera <= 60s: 13
+2025-08-12 09:41:10,827 - % Chamadas com tempo de espera <= 60s: 100.0%
+2025-08-12 09:41:10,827 - Chamadas atendidas à primeira tentativa: 12
+2025-08-12 09:41:10,827 - Número médio de tentativas (atendidas): 1.1
+2025-08-12 09:41:10,827 - Tempo médio de espera (s): 10.076923076923077
+2025-08-12 09:41:10,827 - Duração média das chamadas (atendidas): 311.6923076923077
+
+2025-08-12 09:41:10,827 - Chamadas Não Atendidas
+2025-08-12 09:41:10,827 - ------------------
+2025-08-12 09:41:10,827 - Total de Chamadas não atendida: 2
+2025-08-12 09:41:10,827 - % não atendidas: 13%
+2025-08-12 09:41:10,827 - Número médio de tentativas (não atendidas): 1.0
+
+2025-08-12 09:41:10,827 - Chamadas Devolvidas
+2025-08-12 09:41:10,827 - ------------------
+2025-08-12 09:41:10,827 - Total de Chamadas devolvidas: 1
+2025-08-12 09:41:10,827 - % Devolvidas até 3min: 100.0%
+2025-08-12 09:41:10,827 - % Devolvidas até 15min: 100.0%
+
+2025-08-12 09:41:10,827 - Chamadas Não Devolvidas
+2025-08-12 09:41:10,827 - ------------------
+2025-08-12 09:41:10,827 - Chamadas não atendidas e não devolvidas (nrs únicos): 1

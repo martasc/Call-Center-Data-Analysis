@@ -6,7 +6,7 @@ from pathlib import Path
 import pandas as pd
 
 INPUT_FILE = "../input/maio01_13.csv"
-OUTPUT_DIR = "../output"
+OUTPUT_DIR = ""
 CLEAN_OUTPUT_FILE = os.path.join(OUTPUT_DIR, "todas.csv") #efetuadas(total - dev ou feedback) + "recebidas" + "nao atendidas"
 
 def clear_output_directory(output_dir=OUTPUT_DIR):

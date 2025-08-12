@@ -1,0 +1,3 @@
+Tipo;Data de Início;Tempo de Toque;Duração;Data de Fim;Fuso Horário;Origem;Destino;Destino Final;Atendida;Identificação Chamada;Identificador Global da Chamada;Causa de Não Atendimento;Origem_norm;Destino_norm;Total Chamadas
+Chamada recebida;2025-07-17 09:27:44;0:00:13;0:04:28;2025-07-17 09:32:24;'Europe/Lisbon';+351919108370;402;'962878547';Atendida;'00000011752741880717092744000014041804';'a7215d24-52ab-44ff-925e-a8ff9eb952ec';;919108370;402;1
+Chamada recebida;2025-07-16 17:19:14;0:00:18;0:04:15;2025-07-16 17:23:47;'Europe/Lisbon';+351937113104;402;'962878547';Atendida;'00000011752646580716171914000014041804';'84deddb6-3b04-4c4d-aa1c-2741163ac844';;937113104;402;1
